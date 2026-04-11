@@ -1,0 +1,42 @@
+{
+  "name": "cse471",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "concurrently \"npm start\" \"npm run dev --prefix frontend\"",
+    "seed": "node seed.js",
+    "fix:user-ports": "node scripts/fixUserPorts.js",
+    "seed:emergency": "node scripts/seedEmergencyTest.js",
+    "generate:demand365": "node scripts/generateDemand365.js",
+    "generate:shipment365": "node scripts/generateShipment365.js",
+    "migrate:shipment-risk": "node scripts/migrateShipmentRiskFields.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@api/searoutes-docs": "file:.api/apis/searoutes-docs",
+    "axios": "^1.15.2",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.4.1",
+    "multer": "^2.1.1",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.5",
+    "react-hot-toast": "^2.6.0",
+    "searoute-js": "^0.1.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
