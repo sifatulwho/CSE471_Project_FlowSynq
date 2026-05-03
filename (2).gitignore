@@ -1,0 +1,10 @@
+node_modules/
+.env
+dist/
+*.log
+.DS_Store
+Thumbs.db
+(2).env
+.env.example
+git
+GIT_COMMITTER_DATE=2026-04-12T040014
