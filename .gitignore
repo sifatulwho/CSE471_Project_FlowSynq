@@ -4,3 +4,7 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+(2).env
+git
+GIT_COMMITTER_DATE=2026-04-12T040014
+.env.example
