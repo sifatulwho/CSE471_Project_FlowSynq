@@ -440,7 +440,7 @@ const DashboardLayout = () => {
             >
               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-700/60 bg-slate-800 flex items-center justify-center">
                 {profile.profilePicture ? (
-                  <img src={`http://localhost:5001${profile.profilePicture}`} alt="Profile" className="h-full w-full object-cover" />
+                  <img src={`${API_HOST}${profile.profilePicture}`} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-sm font-bold text-slate-400 uppercase">
                     {profile.fullName?.charAt(0) || profile.username?.charAt(0)}

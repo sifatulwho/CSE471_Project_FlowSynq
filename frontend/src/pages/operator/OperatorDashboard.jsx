@@ -399,8 +399,9 @@ import axios from 'axios';
 import ImageBackground from '../../components/ImageBackground';
 import bgImage from '../../assets/bg-image.jpg';
 import { useSocket } from '../../context/useSocket';
+import { API_BASE } from '../../config';
 
-const API = 'http://localhost:5001/api/shipments';
+const API = `${API_BASE}/shipments`;
 const PAGE_SIZE = 25;
 
 const SeeMoreShipmentsButton = ({ onClick, disabled }) => (

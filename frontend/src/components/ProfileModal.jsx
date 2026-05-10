@@ -9,7 +9,7 @@ const ProfileModal = ({ profile, onClose, onUpdate }) => {
     password: '',
   });
   const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(profile?.profilePicture ? `http://localhost:5001${profile.profilePicture}` : null);
+  const [previewUrl, setPreviewUrl] = useState(profile?.profilePicture ? `${API_HOST}${profile.profilePicture}` : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

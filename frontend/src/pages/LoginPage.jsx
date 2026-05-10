@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-const API_BASE = 'http://localhost:5001/api/auth';
+import { API_BASE } from '../config';
 
 const LoginPage = () => {
   const navigate = useNavigate();
