@@ -41,7 +41,20 @@ app.set('io', io);
 startShipmentRiskJob(io);
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000'
+].filter(Boolean); // Remove undefined values
+
+app.use(cors({ 
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -63,6 +76,15 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/supply-plans', supplyPlanRoutes);
 app.use('/api/port-geocoding', portGeocodingRoutes);
 app.use('/api/marine-route', marineRouteRoutes);
+
+// Health check endpoint for monitoring
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -160,6 +182,7 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
