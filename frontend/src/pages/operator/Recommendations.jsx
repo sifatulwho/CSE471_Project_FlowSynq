@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE } from '../../config';
 
-const API = 'http://localhost:5001/api/recommendations';
+const API = `${API_BASE}/recommendations`;
 
 const Recommendations = () => {
   const { token, profile } = useOutletContext() || {};

@@ -5,6 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { API_BASE } from '../config';
 
+const AUTH_API = `${API_BASE}/auth`;
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ identifier: '', password: '', remember: false });
@@ -38,7 +40,7 @@ const LoginPage = () => {
     setMessage('');
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE}/login`, {
+      const response = await axios.post(`${AUTH_API}/login`, {
         identifier: form.identifier,
         password: form.password,
       });
@@ -67,7 +69,7 @@ const LoginPage = () => {
     setMessage('');
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE}/google-login`, {
+      const response = await axios.post(`${AUTH_API}/google-login`, {
         credential,
       });
       localStorage.setItem('flowsynqToken', response.data.token);

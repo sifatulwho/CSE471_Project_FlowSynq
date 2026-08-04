@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
+import { API_BASE } from '../config';
 
-const API_BASE = 'http://localhost:5001/api/auth';
+const AUTH_API = `${API_BASE}/auth`;
 
 const AdminApprovePage = () => {
   const [searchParams] = useSearchParams();
@@ -18,7 +19,7 @@ const AdminApprovePage = () => {
       }
 
       try {
-        const response = await axios.post(`${API_BASE}/approve-request`, {
+        const response = await axios.post(`${AUTH_API}/approve-request`, {
           token,
           action: action || 'approve'
         });

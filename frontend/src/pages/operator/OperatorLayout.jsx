@@ -4,8 +4,9 @@ import axios from 'axios';
 import ProfileModal from '../../components/ProfileModal';
 import { api } from '../../api';
 import { useSocket } from '../../context/useSocket';
+import { API_BASE } from '../../config';
 
-const API_BASE = 'http://localhost:5001/api/auth';
+const AUTH_API = `${API_BASE}/auth`;
 
 const navBtnClass = (isActive) =>
   `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${isActive
@@ -143,7 +144,7 @@ const OperatorLayout = () => {
       return;
     }
     axios
-      .get(`${API_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .get(`${AUTH_API}/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         if (res.data.role !== 'operator' && res.data.role !== 'admin') {
           navigate('/dashboard');

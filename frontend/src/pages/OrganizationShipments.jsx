@@ -4,8 +4,9 @@ import axios from 'axios';
 import RouteMap from '../components/RouteMap';
 import WeatherRiskPanel from '../components/WeatherRiskPanel';
 import DemandSupplyGapCard from '../components/DemandSupplyGapCard';
+import { API_BASE } from '../config';
 
-const API = 'http://localhost:5001/api/shipments';
+const API = `${API_BASE}/shipments`;
 
 const OrganizationShipments = () => {
   const { token } = useOutletContext();

@@ -4,8 +4,9 @@ import axios from 'axios';
 import { COMMODITY_OPTIONS, PORT_OPTIONS } from '../../constants/ports';
 import RouteMap from '../../components/RouteMap';
 import PortCoordinateInput from '../../components/PortCoordinateInput';
+import { API_BASE } from '../../config';
 
-const API = 'http://localhost:5001/api/shipments';
+const API = `${API_BASE}/shipments`;
 const PAGE_SIZE = 25;
 
 const SeeMoreShipmentsButton = ({ onClick, disabled }) => (

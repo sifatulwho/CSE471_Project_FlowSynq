@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { API_BASE } from '../config';
 
-const API_BASE = 'http://localhost:5001/api/auth';
+const AUTH_API = `${API_BASE}/auth`;
 
 const SetPasswordPage = () => {
   const [password, setPassword] = useState('');
@@ -26,7 +27,7 @@ const SetPasswordPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE}/register`, {
+      const response = await axios.post(`${AUTH_API}/register`, {
         email,
         password,
         confirmPassword,

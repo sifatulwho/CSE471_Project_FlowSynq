@@ -31,26 +31,47 @@ const { sendEmergencyBroadcastEmail } = require('./utils/emailService');
 const app = express();
 const PORT = process.env.PORT || 5001;
 const server = http.createServer(app);                   //new line for alert (15-21))
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'https://flowsynq-frontend.onrender.com',
+  'https://flowsynq-backend.onrender.com'
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  return /localhost|127\.0\.0\.1|\.onrender\.com$/i.test(origin);
+};
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Origin not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 app.set('io', io);
 startShipmentRiskJob(io);
 
 // Middleware
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000'
-].filter(Boolean); // Remove undefined values
-
 app.use(cors({ 
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origin not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

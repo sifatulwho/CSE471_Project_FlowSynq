@@ -9,8 +9,9 @@ import {
   FiAlertTriangle, FiStar, FiInfo, FiCheckCircle, FiXCircle,
 } from 'react-icons/fi';
 import axios from 'axios';
+import { API_BASE } from '../config';
 
-const API_BASE = 'http://localhost:5001/api/cost-analytics/summary';
+const API = `${API_BASE}/cost-analytics/summary`;
 
 const fmt1 = (v) => `${Number(v || 0).toFixed(1)}%`;
 const fmtN = (v) => Number(v || 0).toLocaleString();
@@ -139,7 +140,7 @@ const CostAnalytics = () => {
       } else if (role === 'analyst' || role === 'operator') {
         // server already scopes by JWT user port — no need to send
       }
-      const res = await axios.get(API_BASE, { params, headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(API, { params, headers: { Authorization: `Bearer ${token}` } });
       setData(res.data);
     } catch (err) {
       setError(err?.response?.data?.message || 'Unable to load analytics data.');

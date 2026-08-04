@@ -1,10 +1,46 @@
+# Dependency folders
 node_modules/
-.env
+frontend/node_modules/
+
+# Build artifacts
+build/
 dist/
+frontend/dist/
+
+# Runtime output
+uploads/
+logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment secrets
+.env
+.env.*
+.env.example
+!.env.example
+frontend/.env
+frontend/.env.*
+
+# Python local environment
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# OS/editor noise
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# Cache / temp
+coverage/
+.cache/
+*.tmp
+*.swp
 (2).env
-git
-GIT_COMMITTER_DATE=2026-04-12T040014
-.env.example
+(2).gitignore
+.api/
