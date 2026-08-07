@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { api } from '../api';
+import { API_HOST } from '../config';
 
 const ProfileModal = ({ profile, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({

@@ -4,7 +4,7 @@ import axios from 'axios';
 import ProfileModal from '../../components/ProfileModal';
 import { api } from '../../api';
 import { useSocket } from '../../context/useSocket';
-import { API_BASE } from '../../config';
+import { API_BASE, API_HOST } from '../../config';
 
 const AUTH_API = `${API_BASE}/auth`;
 

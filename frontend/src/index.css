@@ -45,6 +45,163 @@ textarea {
   }
 }
 
+/* Auth card animations */
+@keyframes authCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authGlowPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 25px 50px -12px rgba(2, 6, 23, 0.55),
+      0 0 0 1px rgba(51, 65, 85, 0.45),
+      0 0 18px rgba(34, 211, 238, 0.06);
+  }
+  50% {
+    box-shadow:
+      0 25px 50px -12px rgba(2, 6, 23, 0.55),
+      0 0 0 1px rgba(51, 65, 85, 0.45),
+      0 0 36px rgba(34, 211, 238, 0.16);
+  }
+}
+
+@keyframes authShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes authAlertIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-card {
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  animation:
+    authCardEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    authGlowPulse 4.5s ease-in-out 0.6s infinite;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(34, 211, 238, 0.15) 25%,
+    rgba(34, 211, 238, 0.85) 50%,
+    rgba(34, 211, 238, 0.15) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: authShimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.auth-header {
+  opacity: 0;
+  animation: authFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+
+.auth-field {
+  opacity: 0;
+  animation: authFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.auth-delay-1 { animation-delay: 0.22s; }
+.auth-delay-2 { animation-delay: 0.32s; }
+.auth-delay-3 { animation-delay: 0.42s; }
+.auth-delay-4 { animation-delay: 0.52s; }
+.auth-delay-5 { animation-delay: 0.62s; }
+.auth-delay-6 { animation-delay: 0.72s; }
+
+.auth-btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.auth-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(34, 211, 238, 0.28);
+}
+
+.auth-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.auth-input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.auth-input:focus {
+  transform: translateY(-1px);
+}
+
+.auth-alert {
+  animation: authAlertIn 0.35s ease forwards;
+}
+
+.auth-link {
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.auth-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+
+.auth-link:hover::after {
+  transform: scaleX(1);
+}
+
+.auth-expand {
+  animation: authFadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 6px;

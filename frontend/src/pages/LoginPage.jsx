@@ -1,4 +1,4 @@
-import VideoBackground from '../components/VideoBackground';     //new lines
+import VideoBackground from '../components/VideoBackground';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,6 +6,9 @@ import { GoogleLogin } from '@react-oauth/google';
 import { API_BASE } from '../config';
 
 const AUTH_API = `${API_BASE}/auth`;
+
+const inputCls =
+  'auth-input w-full rounded-lg border border-slate-700 bg-slate-950/90 px-3.5 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -52,7 +55,6 @@ const LoginPage = () => {
       } else {
         localStorage.removeItem('flowsynqRemember');
       }
-      // Role-based redirect: operators go directly to operator hub
       if (response.data.user.role === 'operator') {
         navigate('/operator/dashboard');
       } else {
@@ -89,117 +91,108 @@ const LoginPage = () => {
   };
 
   return (
-    // <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-50">
-    //   <video autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover opacity-30">
-    //     <source src="https://cdn.pixabay.com/vimeo/583496330/ship-91781.mp4?width=1280&hash=8f77f8d0180d1a18b2ccbbee6f1c28464a37ed8d" type="video/mp4" />
-    //   </video>
     <div className="relative min-h-screen overflow-hidden text-slate-50">
-      {/* //new lines 69-72 */}
       <VideoBackground />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-3xl rounded-3xl border border-slate-700 bg-slate-950/90 p-8 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-5 rounded-3xl bg-slate-900/90 p-8">
-              <div>
-                <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">port Control Access</p>
-                <h1 className="mt-4 text-4xl font-semibold text-white">Login to Flowsynq</h1>
-                <p className="mt-3 text-slate-300">Sign in securely with your username or email and password for port operations and analytics access.</p>
-              </div>
-
-              <form className="space-y-5" onSubmit={handleLogin}>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-300">Username or email</label>
-                  <input
-                    name="identifier"
-                    value={form.identifier}
-                    onChange={handleChange}
-                    required
-                    placeholder="username or email"
-                    className="w-full rounded-3xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-300">Password</label>
-                  <input
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={handleChange}
-                    required
-                    placeholder="********"
-                    className="w-full rounded-3xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-                  />
-                  <label className="mt-3 flex items-center gap-2 text-sm text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={showPassword}
-                      onChange={(e) => setShowPassword(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-cyan-400 focus:ring-cyan-400"
-                    />
-                    Show password
-                  </label>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <label className="flex items-center gap-2 text-sm text-slate-300">
-                    <input
-                      type="checkbox"
-                      name="remember"
-                      checked={form.remember}
-                      onChange={handleChange}
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-cyan-400 focus:ring-cyan-400"
-                    />
-                    Remember me
-                  </label>
-                  <Link to="/signup" className="text-sm text-cyan-300 hover:text-cyan-200">Create account</Link>
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-3xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-60"
-                >
-                  {loading ? 'Signing in…' : 'Sign in'}
-                </button>
-              </form>
-
-              {message && <p className="rounded-3xl border border-cyan-500/40 bg-slate-900/80 px-4 py-3 text-sm text-cyan-200">{message}</p>}
-
-              <div className="space-y-4 pt-3 flex flex-col items-center">
-                <div className="flex items-center w-full mb-2">
-                  <div className="flex-grow border-t border-slate-700"></div>
-                  <span className="px-3 text-sm text-slate-500">or</span>
-                  <div className="flex-grow border-t border-slate-700"></div>
-                </div>
-                <GoogleLogin
-                  onSuccess={(credentialResponse) => handleGoogleSuccess(credentialResponse.credential)}
-                  onError={() => setMessage('Google Login Failed')}
-                  theme="filled_black"
-                  shape="pill"
-                />
-              </div>
-            </div>
-
-            <div className="hidden rounded-3xl bg-gradient-to-br from-cyan-500/20 to-slate-950/70 p-8 text-slate-100 lg:block">
-              <div className="space-y-6">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.3em] text-cyan-200">port Analytics</p>
-                  <h2 className="mt-4 text-3xl font-semibold">Secure access for operations, inventory and forecasting.</h2>
-                </div>
-                <div className="rounded-3xl bg-slate-900/80 p-6">
-                  <h3 className="text-xl font-semibold text-white">Why Flowsynq?</h3>
-                  <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                    <li>• Role-based access for Admin, Operator and Analyst.</li>
-                    <li>• Secure username/password login for all users.</li>
-                    <li>• Designed for port and tank logistics workflows.</li>
-                  </ul>
-                </div>
-                <div className="rounded-3xl border border-slate-700 bg-slate-950/90 p-6">
-                  <p className="text-sm text-slate-400">Use admin email:</p>
-                  <p className="mt-2 text-lg font-semibold text-white">admin@flowsynq.org</p>
-                </div>
-              </div>
-            </div>
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="auth-card w-full max-w-md rounded-xl border border-slate-600/70 border-t-2 border-t-cyan-500 bg-slate-900/90 p-8 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
+          <div className="auth-header mb-7 border-b border-slate-700/80 pb-6 text-center">
+            <p className="text-xl font-semibold tracking-wide text-white">FlowSynq</p>
+            <p className="mt-1 text-sm text-slate-400">Port Operations Portal</p>
           </div>
+
+          <form className="space-y-4" onSubmit={handleLogin}>
+            <div className="auth-field auth-delay-1">
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Username or Email
+              </label>
+              <input
+                name="identifier"
+                value={form.identifier}
+                onChange={handleChange}
+                required
+                autoComplete="username"
+                placeholder="Enter username or email"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="auth-field auth-delay-2">
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                Password
+              </label>
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handleChange}
+                required
+                autoComplete="current-password"
+                placeholder="Enter password"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="auth-field auth-delay-3 flex items-center justify-between gap-3 pt-1">
+              <label className="flex items-center gap-2 text-xs text-slate-400">
+                <input
+                  type="checkbox"
+                  name="remember"
+                  checked={form.remember}
+                  onChange={handleChange}
+                  className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-800 text-cyan-400 focus:ring-cyan-400"
+                />
+                Remember me
+              </label>
+              <label className="flex items-center gap-2 text-xs text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={(e) => setShowPassword(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-800 text-cyan-400 focus:ring-cyan-400"
+                />
+                Show password
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="auth-btn auth-field auth-delay-4 mt-2 w-full rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+            >
+              {loading ? 'Signing in…' : 'Sign In'}
+            </button>
+          </form>
+
+          {message && (
+            <p className="auth-alert mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-200">
+              {message}
+            </p>
+          )}
+
+          <div className="auth-field auth-delay-5 my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-800" />
+            <span className="text-xs text-slate-500">or continue with</span>
+            <div className="h-px flex-1 bg-slate-800" />
+          </div>
+
+          <div className="auth-field auth-delay-5 flex justify-center">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => handleGoogleSuccess(credentialResponse.credential)}
+              onError={() => setMessage('Google login failed.')}
+              theme="filled_black"
+              shape="rectangular"
+              size="large"
+              width="100%"
+            />
+          </div>
+
+          <p className="auth-field auth-delay-6 mt-6 text-center text-sm text-slate-400">
+            No account?{' '}
+            <Link to="/signup" className="auth-link font-medium text-cyan-300 hover:text-cyan-200">
+              Register
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import ImageBackground from '../components/ImageBackground';
 import bgImage from '../assets/bg-image.jpg';
 import { api } from '../api';
+import AdminDashboardHome from './AdminDashboardHome';
 
 const DashboardHome = () => {
   const navigate = useNavigate();
@@ -67,12 +68,15 @@ const DashboardHome = () => {
     return () => { mounted = false; };
   }, [role]);
 
+  // Dedicated admin home — avoids blank/broken generic dashboard for admin role
+  if (role === 'admin') {
+    return <AdminDashboardHome />;
+  }
+
   return (
     <div className="relative isolate min-h-screen">
-      {/* Background Image Container */}
       <ImageBackground imageSrc={bgImage} />
 
-      {/* Main Content Container */}
       <div className="relative z-10 flex flex-col gap-8 p-6">
         <div className="relative overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-950/70 p-8 backdrop-blur-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/90">Your workspace</p>
@@ -92,7 +96,6 @@ const DashboardHome = () => {
 
         {profile ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Stats Cards */}
             <div className="rounded-2xl border border-slate-700/60 bg-slate-950/70 p-5 backdrop-blur-sm transition-transform hover:scale-[1.02]">
               <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Account</p>
               <p className="mt-2 truncate text-lg font-bold text-white">{profile.email}</p>
@@ -129,14 +132,6 @@ const DashboardHome = () => {
               <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">My Shipment Requests (Pending): <span className="font-semibold text-cyan-300">{widgets.myShipmentPending ?? 0}</span></div>
               <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">My Shipment Requests (Approved): <span className="font-semibold text-cyan-300">{widgets.myShipmentApproved ?? 0}</span></div>
               <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">Pending Import Requests: <span className="font-semibold text-cyan-300">{widgets.pendingImportRequests ?? 0}</span></div>
-            </div>
-          )}
-          {role === 'admin' && (
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">Sanctioned Organizations: <span className="font-semibold text-cyan-300">{widgets.sanctionedOrganizations ?? 0}</span></div>
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">Sanctioned Commodities: <span className="font-semibold text-cyan-300">{widgets.sanctionedCommodities ?? 0}</span></div>
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">Sanctioned Vessels: <span className="font-semibold text-cyan-300">{widgets.sanctionedVessels ?? 0}</span></div>
-              <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">Recent Shipment Request Activity: <span className="font-semibold text-cyan-300">{widgets.recentShipmentRequestActivity ?? 0}</span></div>
             </div>
           )}
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

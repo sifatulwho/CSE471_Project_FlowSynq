@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
+import { API_HOST } from '../config';
 import ProfileModal from './ProfileModal';
 import { useSocket } from '../context/useSocket';
 
@@ -82,9 +83,24 @@ const DashboardLayout = () => {
   if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-          <p className="text-sm text-slate-400">Loading dashboard…</p>
+        <div className="flex flex-col items-center gap-4 px-4 text-center">
+          {error ? (
+            <>
+              <p className="max-w-md text-sm text-rose-300">{error}</p>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
+              >
+                Back to login
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
+              <p className="text-sm text-slate-400">Loading dashboard…</p>
+            </>
+          )}
         </div>
       </div>
     );
