@@ -40,7 +40,7 @@ const DockManagement = () => {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-white">Dock Management</h2>
-          <p className="mt-1 text-sm text-slate-400">Predefined Jetty 1-30 with dynamic occupancy and vacancy.</p>
+          <p className="mt-1 text-sm text-slate-400">Predefined Jetties with occupancy and vacancy.</p>
         </div>
       </div>
 

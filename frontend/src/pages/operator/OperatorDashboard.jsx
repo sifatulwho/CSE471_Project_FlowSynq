@@ -676,11 +676,11 @@ const OperatorDashboard = () => {
       <div className="relative z-10 space-y-6 p-6">
         <div>
           <h2 className="text-2xl font-bold text-white">Shipment Tracking Dashboard</h2>
-          <p className="text-sm text-slate-400">Last updated: {new Date(lastRefresh).toLocaleTimeString()}</p>
+          <p className="text-sm text-white-400">Last updated: {new Date(lastRefresh).toLocaleTimeString()}</p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">
-            Port: <span className="font-medium text-slate-300">{profile?.port || '—'}</span>
+          <p className="text-xs text-white-500">
+            Port: <span className="font-medium text-white">{profile?.port || '—'}</span>
             {' · '}
             Alerts go to every role on this port (admin, analyst, operator, organization).
           </p>
@@ -707,7 +707,7 @@ const OperatorDashboard = () => {
               <div>
                 <h3 className="text-lg font-semibold text-white">Report emergency</h3>
                 <p className="mt-1 text-sm text-slate-400">
-                  This broadcasts immediately to all subscribed users for this port. Be specific about location and time.
+                  This broadcasts immediately to all subscribed users for this port.
                 </p>
               </div>
 

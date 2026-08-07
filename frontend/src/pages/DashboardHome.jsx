@@ -86,8 +86,7 @@ const DashboardHome = () => {
             )}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
-            Monitor port demand, review submissions, and keep operations aligned. Use the sidebar for navigation—the
-            overview below is tailored to your role.
+            Monitor port demand, review submissions, and keep operations aligned.
           </p>
         </div>
 

@@ -323,8 +323,7 @@ const DemandViewData = () => {
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-300/90">Demand intelligence</p>
         <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">View data</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
-          Explore approved demand entries: filter the table below, then review trends. Exports respect your current
-          filters (up to 500 rows for charts and files).
+          Explore approved demand entries: filter the table below, then review trends.
         </p>
       </div>
 
