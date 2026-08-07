@@ -1,11 +1,20 @@
 const axios = require("axios");
 
-const NOMINATIM_BASE_URL =
-  process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
+const DEFAULT_USER_AGENT = "Flowsync-Port-Geocoder/1.0";
 
-const USER_AGENT =
-  process.env.NOMINATIM_USER_AGENT ||
-  "Flowsync-Port-Geocoder/1.0";
+const NOMINATIM_BASE_URL = (
+  process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org"
+).trim();
+
+const resolveUserAgent = () => {
+  const configured = (process.env.NOMINATIM_USER_AGENT || "").trim();
+  if (!configured || /example\.com|your-email|placeholder/i.test(configured)) {
+    return DEFAULT_USER_AGENT;
+  }
+  return configured;
+};
+
+const USER_AGENT = resolveUserAgent();
 
 // Simple in-memory cache for project/demo use
 const cache = new Map();

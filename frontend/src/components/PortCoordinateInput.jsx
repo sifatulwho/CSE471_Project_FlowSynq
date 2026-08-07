@@ -17,11 +17,15 @@ const PortCoordinateInput = ({ label, portName, setPortName, coordinates, setCoo
     try {
       const result = await getPortCoordinates(portName.trim());
       if (result && result.success && result.data) {
-        setCoordinates({
-          latitude: result.data.latitude,
-          longitude: result.data.longitude
-        });
-        setError('');
+        const latitude = Number(result.data.latitude);
+        const longitude = Number(result.data.longitude);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          setError('Port not found. Please check the name and try again.');
+        } else {
+          setPortName(result.data.displayName || portName.trim());
+          setCoordinates({ latitude, longitude });
+          setError('');
+        }
       } else {
         setError('Port not found. Please check the name and try again.');
       }

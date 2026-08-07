@@ -219,8 +219,28 @@ const ShipmentActions = () => {
     setRecommendation(s.optimizationRecommendation || null);
   };
 
+  const validateCustomPorts = () => {
+    if (!editForm.useCustomPorts) return true;
+
+    if (
+      !editForm.customStartingPortName ||
+      !editForm.customStartingPortCoords ||
+      !editForm.customDestinationPortName ||
+      !editForm.customDestinationPortCoords
+    ) {
+      setToast({
+        message: 'Please geocode both starting and destination custom ports before saving.',
+        type: 'error',
+      });
+      return false;
+    }
+    return true;
+  };
+
   const saveEdit = async () => {
     try {
+      if (!validateCustomPorts()) return;
+
       let startingPort = null;
       let destinationPort = null;
 
@@ -299,6 +319,8 @@ const ShipmentActions = () => {
 
   const saveCreate = async () => {
     try {
+      if (!validateCustomPorts()) return;
+
       let startingPort = null;
       let destinationPort = null;
 
@@ -383,6 +405,7 @@ const ShipmentActions = () => {
 
   const previewRouteRisk = async () => {
     try {
+      if (!validateCustomPorts()) return;
       setPreviewLoading(true);
       let startingPort = null;
       let destinationPort = null;
@@ -730,16 +753,16 @@ const ShipmentActions = () => {
                   <PortCoordinateInput
                     label="Starting Port"
                     portName={editForm.customStartingPortName}
-                    setPortName={(name) => setEditForm({ ...editForm, customStartingPortName: name })}
+                    setPortName={(name) => setEditForm((prev) => ({ ...prev, customStartingPortName: name }))}
                     coordinates={editForm.customStartingPortCoords}
-                    setCoordinates={(coords) => setEditForm({ ...editForm, customStartingPortCoords: coords })}
+                    setCoordinates={(coords) => setEditForm((prev) => ({ ...prev, customStartingPortCoords: coords }))}
                   />
                   <PortCoordinateInput
                     label="Destination Port"
                     portName={editForm.customDestinationPortName}
-                    setPortName={(name) => setEditForm({ ...editForm, customDestinationPortName: name })}
+                    setPortName={(name) => setEditForm((prev) => ({ ...prev, customDestinationPortName: name }))}
                     coordinates={editForm.customDestinationPortCoords}
-                    setCoordinates={(coords) => setEditForm({ ...editForm, customDestinationPortCoords: coords })}
+                    setCoordinates={(coords) => setEditForm((prev) => ({ ...prev, customDestinationPortCoords: coords }))}
                   />
                 </div>
               ) : (
