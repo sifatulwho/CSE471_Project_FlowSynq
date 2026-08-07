@@ -5,7 +5,14 @@ const SupplyPlan = require('../models/SupplyPlan');
 const SupplyPlanConfig = require('../models/SupplyPlanConfig');
 const { getDockStatusForPort } = require('./dockStateService');
 
-const AI_SERVICE_URL = process.env.PYTHON_AI_URL || 'http://localhost:8000';
+const resolveAiServiceUrl = () => {
+  const raw = (
+    process.env.PYTHON_AI_URL ||
+    process.env.OPTIMIZATION_SERVICE_URL ||
+    'http://localhost:8000'
+  ).trim().replace(/\/$/, '');
+  return raw || 'http://localhost:8000';
+};
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -280,9 +287,9 @@ const generateDailyPlan = async ({ planDate, portName, strategy = 'balanced', re
 
   try {
     const aiResp = await axios.post(
-      `${AI_SERVICE_URL}/ai/generate-plan-explanation`,
+      `${resolveAiServiceUrl()}/ai/generate-plan-explanation`,
       planSummaryForLLM,
-      { timeout: 60000 }
+      { timeout: 20000 }
     );
     if (aiResp.data && aiResp.data.planSummary) {
       llmExplanation = { ...aiResp.data, fallbackUsed: false };

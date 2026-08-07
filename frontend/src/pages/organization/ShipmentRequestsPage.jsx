@@ -16,7 +16,7 @@ const ShipmentRequestsPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/shipment-requests')
+    api.get('/shipment-requests', { params: { limit: 25, page: 1 } })
       .then((res) => setItems(res.data.items || []))
       .catch((err) => setError(err?.response?.data?.message || 'Failed to load requests.'))
       .finally(() => setLoading(false));

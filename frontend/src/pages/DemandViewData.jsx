@@ -170,7 +170,7 @@ const DemandViewData = () => {
   const fetchCharts = useCallback(async () => {
     try {
       const { data } = await api.get('/demands', {
-        params: { ...filterParams, page: 1, limit: 500 },
+        params: { ...filterParams, page: 1, limit: 100 },
       });
       setChartRows(data.items || []);
     } catch {
@@ -186,8 +186,12 @@ const DemandViewData = () => {
     fetchTable();
   }, [fetchTable]);
 
+  // Defer chart fetch until after the table paints so sidebar navigation feels faster
   useEffect(() => {
-    fetchCharts();
+    const t = setTimeout(() => {
+      fetchCharts();
+    }, 150);
+    return () => clearTimeout(t);
   }, [fetchCharts]);
 
   const lineMode = reportType === 'monthly' ? 'monthly' : 'weekly';

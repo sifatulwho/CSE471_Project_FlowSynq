@@ -115,8 +115,19 @@ const OperatorLayout = () => {
   const location = useLocation();
   const socketContext = useSocket();
   const socket = socketContext?.socket;
-  const [profile, setProfile] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [profile, setProfile] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('flowsynqUser') || 'null');
+    } catch {
+      return null;
+    }
+  });
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
+  );
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [supplyPlanningOpen, setSupplyPlanningOpen] = useState(() =>
     location.pathname.startsWith('/operator/supply-planning'));
@@ -131,6 +142,20 @@ const OperatorLayout = () => {
       /* optional */
     }
   }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      setSidebarOpen(desktop);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) setSidebarOpen(false);
+  }, [location.pathname, isDesktop]);
 
   useEffect(() => {
     if (!location.pathname.startsWith('/operator/supply-planning')) return;
@@ -151,9 +176,11 @@ const OperatorLayout = () => {
           return;
         }
         setProfile(res.data);
+        localStorage.setItem('flowsynqUser', JSON.stringify(res.data));
       })
       .catch(() => {
         localStorage.removeItem('flowsynqToken');
+        localStorage.removeItem('flowsynqUser');
         navigate('/');
       });
   }, [navigate, token]);
@@ -236,9 +263,21 @@ const OperatorLayout = () => {
       />
       <div className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-br from-slate-950/95 via-slate-950/90 to-cyan-950/80" />
 
+      {!isDesktop && sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-slate-700/60 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-[72px]'
-          }`}
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-700/60 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
+          sidebarOpen
+            ? 'w-64 translate-x-0'
+            : '-translate-x-full w-64 lg:translate-x-0 lg:w-[72px]'
+        }`}
       >
         <div className="flex h-16 items-center gap-3 border-b border-slate-700/60 px-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500">
@@ -374,9 +413,23 @@ const OperatorLayout = () => {
         </div>
       </aside>
 
-      <main className={`relative z-10 flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-[72px]'}`}>
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-700/60 bg-slate-950/80 px-6 backdrop-blur-xl">
+      <main
+        className={`relative z-10 flex min-w-0 flex-1 flex-col transition-all duration-300 ${
+          isDesktop ? (sidebarOpen ? 'ml-64' : 'ml-[72px]') : 'ml-0'
+        }`}
+      >
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-slate-700/60 bg-slate-950/85 px-4 backdrop-blur-xl sm:h-16 sm:px-6">
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 lg:hidden"
+              aria-label="Open menu"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <button
               onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
@@ -384,12 +437,12 @@ const OperatorLayout = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Main
+              <span className="hidden sm:inline">Back to Main</span>
             </button>
           </div>
         </header>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <Outlet context={{ profile, token }} />
         </div>
       </main>

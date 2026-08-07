@@ -76,7 +76,7 @@ const geocodePort = async (portName, countryCode) => {
     },
     headers: {
       "User-Agent": USER_AGENT,
-      Referer: "http://localhost:5173",
+      Referer: (process.env.CLIENT_URL || "http://localhost:5173").trim(),
     },
     timeout: 15000,
   });

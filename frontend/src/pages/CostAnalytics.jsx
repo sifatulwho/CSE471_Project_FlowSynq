@@ -107,8 +107,8 @@ function KpiCard({ icon, title, value, sub, gauge, gaugeColor }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 const defaultFilters = () => {
   const now = new Date();
-  // Default: last 365 days — covers all existing demo data
-  const start = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+  // Default: last 90 days for faster first load (widen via filters as needed)
+  const start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
   return {
     startDate: start.toISOString().slice(0, 10),
     endDate:   now.toISOString().slice(0, 10),
@@ -155,7 +155,7 @@ const CostAnalytics = () => {
   const charts = data?.charts || {};
 
   return (
-    <div className="flex min-h-screen flex-col gap-7 bg-slate-950 px-4 py-7 sm:px-6 lg:px-8">
+    <div className="flex min-h-0 flex-col gap-5 sm:gap-7">
 
       {/* ── Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -185,7 +185,8 @@ const CostAnalytics = () => {
           <input
             placeholder="Port name…" value={filters.portName}
             onChange={e => setFilters(p => ({ ...p, portName: e.target.value }))}
-            className="w-36 rounded-lg border border-white/10 bg-slate-950/80 px-3 py-1.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-cyan-500/40"
+            disabled={['analyst', 'operator', 'organization'].includes(String(profile?.role || '').toLowerCase())}
+            className="w-full max-w-[9rem] rounded-lg border border-white/10 bg-slate-950/80 px-3 py-1.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-cyan-500/40 disabled:cursor-not-allowed disabled:opacity-50 sm:w-36"
           />
           <button
             onClick={() => fetchData(filters)}

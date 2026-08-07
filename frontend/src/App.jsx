@@ -86,6 +86,7 @@ function App() {
           </Route>
 
           <Route path="/organization" element={<DashboardLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="shipment-requests/create" element={<ShipmentRequestCreatePage />} />
             <Route path="shipment-requests" element={<ShipmentRequestsPage />} />
             <Route path="shipment-requests/:id" element={<ShipmentRequestReviewPage />} />

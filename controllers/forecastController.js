@@ -1,6 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const Demand = require('../models/Demand');
+const { generateNodeForecast } = require('../services/forecastEngine');
 
 function safeStr(v) {
   return String(v ?? '').trim();
@@ -19,42 +20,82 @@ function median(values) {
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 }
 
-function runPythonForecast({ history, horizonDays }) {
+function tryPythonCmd(cmd, args, payload) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`Python forecast timed out (${cmd})`));
+    }, 90000);
+
+    child.stdout.on('data', (d) => {
+      out += d.toString();
+    });
+    child.stderr.on('data', (d) => {
+      err += d.toString();
+    });
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        const e = new Error(err || `Python exited with code ${code}`);
+        e.details = { code, stderr: err, stdout: out };
+        return reject(e);
+      }
+      try {
+        resolve(JSON.parse(out));
+      } catch (parseErr) {
+        const e = new Error(`Failed to parse forecast output: ${parseErr.message}`);
+        e.details = { stdout: out, stderr: err };
+        reject(e);
+      }
+    });
+    child.stdin.write(payload);
+    child.stdin.end();
+  });
+}
+
+async function runPythonForecast({ history, horizonDays }) {
   const scriptPath = path.join(process.cwd(), 'scripts', 'prophet_forecast.py');
   const payload = JSON.stringify({ history, horizonDays });
 
-  const tryCmd = (cmd, args) =>
-    new Promise((resolve, reject) => {
-      const child = spawn(cmd, args, { stdio: ['pipe', 'pipe', 'pipe'] });
-      let out = '';
-      let err = '';
-      child.stdout.on('data', (d) => {
-        out += d.toString();
-      });
-      child.stderr.on('data', (d) => {
-        err += d.toString();
-      });
-      child.on('error', reject);
-      child.on('close', (code) => {
-        if (code !== 0) {
-          const e = new Error(err || `Python exited with code ${code}`);
-          e.details = { code, stderr: err, stdout: out };
-          return reject(e);
-        }
-        try {
-          resolve(JSON.parse(out));
-        } catch (parseErr) {
-          const e = new Error(`Failed to parse forecast output: ${parseErr.message}`);
-          e.details = { stdout: out, stderr: err };
-          reject(e);
-        }
-      });
-      child.stdin.write(payload);
-      child.stdin.end();
-    });
+  // Try common interpreters: Linux/Render (python3), Windows (python / py -3)
+  const attempts = [
+    ['python3', [scriptPath]],
+    ['python', [scriptPath]],
+    ['py', ['-3', scriptPath]],
+  ];
 
-  // Windows-friendly: try `python` then `py -3`.
-  return tryCmd('python', [scriptPath]).catch(() => tryCmd('py', ['-3', scriptPath]));
+  let lastError;
+  for (const [cmd, args] of attempts) {
+    try {
+      const result = await tryPythonCmd(cmd, args, payload);
+      if (result?.forecast?.length) {
+        return { ...result, engine: 'prophet' };
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('Python forecast engine unavailable');
+}
+
+async function runForecastEngine({ history, horizonDays }) {
+  try {
+    return await runPythonForecast({ history, horizonDays });
+  } catch (pythonErr) {
+    console.warn(
+      '[forecast] Prophet unavailable, using Node fallback:',
+      pythonErr?.message || pythonErr,
+    );
+    const nodeResult = generateNodeForecast({ history, horizonDays });
+    return nodeResult;
+  }
 }
 
 exports.getDemandForecast = async (req, res) => {
@@ -74,12 +115,13 @@ exports.getDemandForecast = async (req, res) => {
       return res.status(400).json({ message });
     }
 
-    const commodityRx = new RegExp(`^${commodity_type.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}$`, 'i');
+    const commodityRx = new RegExp(`^${commodity_type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const portRx = new RegExp(`^${portName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
 
     const query = {
       status: 'approved',
       commodity_type: commodityRx,
-      portName,
+      portName: portRx,
     };
 
     const docs = await Demand.find(query)
@@ -101,13 +143,15 @@ exports.getDemandForecast = async (req, res) => {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([ds, y]) => ({ ds, y }));
 
-    if (history.length < 60) {
+    // Prophet prefers ~60 days; Node fallback can work with less, but keep a useful floor.
+    const minPoints = 14;
+    if (history.length < minPoints) {
       return res.status(400).json({
-        message: `Not enough clean historical data for forecasting. Need at least ~60 daily points, found ${history.length}.`,
+        message: `Not enough clean historical data for forecasting. Need at least ~${minPoints} daily points, found ${history.length}.`,
       });
     }
 
-    const forecastResult = await runPythonForecast({ history, horizonDays });
+    const forecastResult = await runForecastEngine({ history, horizonDays });
     if (!forecastResult?.forecast?.length) {
       return res.status(500).json({ message: 'Forecast engine returned empty output.' });
     }
@@ -127,6 +171,7 @@ exports.getDemandForecast = async (req, res) => {
     const yhatList = fc.map((r) => Number(r.yhat)).filter((n) => Number.isFinite(n));
     const vol = median(yhatList.map((n) => Math.abs(n - median(yhatList))));
     const direction = growthPct > 1 ? 'rising' : growthPct < -1 ? 'falling' : 'stable';
+    const engineName = forecastResult.engine || 'node-seasonal-trend';
 
     return res.json({
       filters: { commodity_type, portName, horizonDays },
@@ -147,7 +192,11 @@ exports.getDemandForecast = async (req, res) => {
         `Peak demand likely on ${peak.ds} at ~${Math.round(Number(peak.yhat) || 0).toLocaleString()}.`,
       ],
       engine: {
-        name: 'prophet',
+        name: engineName,
+        note:
+          engineName === 'prophet'
+            ? 'Generated with Prophet.'
+            : 'Generated with built-in seasonal-trend engine (Prophet unavailable on this host).',
       },
     });
   } catch (error) {
@@ -159,7 +208,8 @@ exports.getDemandForecast = async (req, res) => {
           'Forecast engine is not installed. Install Python dependencies for Prophet (see requirements-forecast.txt) and try again.',
       });
     }
-    return res.status(500).json({ message: 'Unable to generate forecast.' });
+    return res.status(500).json({
+      message: msg || 'Unable to generate forecast.',
+    });
   }
 };
-

@@ -52,16 +52,13 @@ const NotificationCenterPage = () => {
         const list = res.data.items || [];
         setItems(list);
         setUnread(res.data.unread ?? 0);
-        const unreadIds = list.filter((n) => !n.isRead).map((n) => n._id);
-        if (unreadIds.length) {
-          await Promise.all(unreadIds.map((id) => api.post(`/notifications/${id}/read`)));
+        const hasUnread = list.some((n) => !n.isRead);
+        if (hasUnread) {
+          await api.post('/notifications/mark-all-read');
           if (cancelled) return;
-          setItems((prev) =>
-            prev.map((n) =>
-              unreadIds.some((id) => String(id) === String(n._id)) ? { ...n, isRead: true } : n,
-            ),
-          );
-          await refreshUnreadCount();
+          setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+          setUnread(0);
+          broadcastUnread(0);
         }
       } catch (err) {
         if (!cancelled) setError(err?.response?.data?.message || 'Failed to load notifications.');
@@ -70,7 +67,7 @@ const NotificationCenterPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [refreshUnreadCount]);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;

@@ -362,3 +362,11 @@ def generate_plan_explanation(req: PlanExplanationRequest):
         result = _deterministic_explanation(req)
         result["fallbackUsed"] = True
         return result
+
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

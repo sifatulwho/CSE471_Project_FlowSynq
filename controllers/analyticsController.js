@@ -154,7 +154,10 @@ const buildFallbackRecommendations = ({ inefficiencies }) => inefficiencies.slic
 });
 
 const fetchAiRecommendations = async ({ payload, inefficiencies, efficiencyScore }) => {
-  const serviceUrl = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:8001/analytics/recommendations';
+  const raw = (process.env.ANALYTICS_SERVICE_URL || 'http://localhost:8001/analytics/recommendations').trim();
+  const serviceUrl = raw.includes('/analytics')
+    ? raw
+    : `${raw.replace(/\/$/, '')}/analytics/recommendations`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {

@@ -11,14 +11,39 @@ const DashboardLayout = () => {
   const socketContext = useSocket();
   const socket = socketContext?.socket;
   const token = localStorage.getItem('flowsynqToken');
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('flowsynqUser') || 'null');
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState('');
   const [demandOpen, setDemandOpen] = useState(true);
   const [operatorOpen, setOperatorOpen] = useState(location.pathname.startsWith('/operator'));
   const [supplyPlanningOpen, setSupplyPlanningOpen] = useState(location.pathname.includes('/dashboard/supply-planning'));
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
+  );
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [notificationUnread, setNotificationUnread] = useState(0);
+
+  useEffect(() => {
+    const onResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      setSidebarOpen(desktop);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) setSidebarOpen(false);
+  }, [location.pathname, isDesktop]);
 
   useEffect(() => {
     if (!token) {
@@ -27,10 +52,15 @@ const DashboardLayout = () => {
     }
     api
       .get('/auth/me')
-      .then((res) => setProfile(res.data))
+      .then((res) => {
+        setProfile(res.data);
+        localStorage.setItem('flowsynqUser', JSON.stringify(res.data));
+      })
       .catch(() => {
         setError('Session expired or invalid token. Please login again.');
         localStorage.removeItem('flowsynqToken');
+        localStorage.removeItem('flowsynqUser');
+        setProfile(null);
       });
   }, [navigate, token]);
 
@@ -132,10 +162,23 @@ const DashboardLayout = () => {
       />
       <div className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-br from-slate-950/95 via-slate-950/90 to-cyan-950/80" />
 
+      {/* Mobile overlay */}
+      {!isDesktop && sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-slate-700/60 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-[72px]'
-          }`}
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-700/60 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
+          sidebarOpen
+            ? 'w-64 translate-x-0'
+            : '-translate-x-full w-64 lg:translate-x-0 lg:w-[72px]'
+        }`}
       >
         {/* Logo area */}
         <div className="flex h-16 items-center gap-3 border-b border-slate-700/60 px-4">
@@ -498,8 +541,25 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main content area */}
-      <main className={`relative z-10 flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-[72px]'}`}>
-        <div className="p-6">
+      <main
+        className={`relative z-10 flex min-w-0 flex-1 flex-col transition-all duration-300 ${
+          isDesktop ? (sidebarOpen ? 'ml-64' : 'ml-[72px]') : 'ml-0'
+        }`}
+      >
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-slate-700/60 bg-slate-950/85 px-4 backdrop-blur-xl lg:hidden">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800"
+            aria-label="Open menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <span className="text-sm font-semibold text-white">FlowSynq</span>
+        </header>
+        <div className="p-4 sm:p-6">
           {error && (
             <div className="mb-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-3 text-sm font-medium text-rose-200 shadow-xl backdrop-blur-xl">
               {error}

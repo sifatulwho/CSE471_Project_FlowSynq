@@ -22,7 +22,10 @@ def main():
     payload = json.loads(raw or "{}")
     history = payload.get("history") or []
     horizon_days = int(payload.get("horizonDays") or 30)
-    horizon_days = horizon_days if horizon_days in (7, 15, 30) else 30
+    if horizon_days < 1:
+        horizon_days = 30
+    if horizon_days > 365:
+        horizon_days = 365
 
     if len(history) < 60:
         raise ValueError("Need at least ~60 daily points for Prophet.")

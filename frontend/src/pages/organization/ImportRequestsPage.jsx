@@ -10,7 +10,7 @@ const OrganizationImportRequestsPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/import-requests', { params: { status, commodityType: commodity } })
+    api.get('/import-requests', { params: { status, commodityType: commodity, limit: 25, page: 1 } })
       .then((res) => setItems(res.data.items || []))
       .catch((err) => setError(err?.response?.data?.message || 'Failed to load import requests.'));
   }, [status, commodity]);

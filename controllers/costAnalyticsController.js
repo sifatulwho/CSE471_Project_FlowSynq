@@ -24,16 +24,16 @@ exports.getCostSummary = async (req, res) => {
     const role = String(req.user?.role || '').toLowerCase();
     const userPort = String(req.user?.portName || '').trim();
     let filterPort = '';
-    if (role === 'analyst' || role === 'operator') {
-      filterPort = userPort; // always scoped
-    } else if (role === 'admin' || role === 'organization') {
+    if (role === 'analyst' || role === 'operator' || role === 'organization') {
+      filterPort = userPort; // always scoped to the user's port
+    } else if (role === 'admin') {
       filterPort = String(portName || '').trim(); // optional filter
     }
 
-    // Default to last 365 days so data is always visible on first load
+    // Default to last 90 days for faster first paint (client can widen the range)
     const start = startDate
       ? new Date(startDate)
-      : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate) : new Date();
     start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
@@ -58,10 +58,10 @@ exports.getCostSummary = async (req, res) => {
     }
 
     const [shipments, tanks, demands, dailyOps] = await Promise.all([
-      Shipment.find(shipQuery).sort({ arrivalTime: -1 }).lean(),
-      Tank.find(tankQuery).lean(),
-      Demand.find(demandQuery).lean(),
-      DailyPortOps.find(opsQuery).lean(),
+      Shipment.find(shipQuery).sort({ arrivalTime: -1 }).limit(2000).lean(),
+      Tank.find(tankQuery).limit(500).lean(),
+      Demand.find(demandQuery).limit(2000).lean(),
+      DailyPortOps.find(opsQuery).limit(500).lean(),
     ]);
 
     // ─── 1. Fulfillment Rate ────────────────────────────────────────────────

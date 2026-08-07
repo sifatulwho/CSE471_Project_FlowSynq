@@ -34,7 +34,7 @@ const AdminDashboardHome = () => {
     <div className="relative min-h-screen">
       <ImageBackground imageSrc={bgImage} />
 
-      <div className="relative z-10 p-6 space-y-6">
+      <div className="relative z-10 space-y-6 p-0 sm:p-0">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">
             Admin Dashboard

@@ -174,11 +174,11 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-slate-50">
+    <div className="relative min-h-screen overflow-x-hidden text-slate-50">
       <VideoBackground />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="auth-card w-full max-w-2xl rounded-xl border border-slate-600/70 border-t-2 border-t-cyan-500 bg-slate-900/90 p-8 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
+      <div className="relative z-10 flex min-h-screen items-center justify-center overflow-y-auto px-4 py-10">
+        <div className="auth-card w-full max-w-2xl rounded-xl border border-slate-600/70 border-t-2 border-t-cyan-500 bg-slate-900/90 p-5 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl sm:p-8">
           <div className="auth-header mb-6 border-b border-slate-700/80 pb-5 text-center">
             <p className="text-xl font-semibold tracking-wide text-cyan-400">FlowSynq</p>
             <p className="mt-1 text-sm text-slate-400">Account Registration</p>

@@ -551,7 +551,7 @@ exports.getShipments = async (req, res) => {
       return res.status(400).json({ message: 'Your account is not associated with a port. Please contact admin.' });
     }
 
-    if ((role === 'operator' || role === 'analyst') && userPort) {
+    if ((role === 'operator' || role === 'analyst' || role === 'organization') && userPort) {
       query.portName = userPort;
     } else if (req.query.portName) {
       query.portName = String(req.query.portName).trim();

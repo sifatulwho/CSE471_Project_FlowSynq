@@ -22,7 +22,7 @@ const RecommendationsInbox = () => {
     setLoading(true);
     setError('');
     api
-      .get('/recommendations')
+      .get('/recommendations', { params: { limit: 20, page: 1 } })
       .then((res) => {
         if (!alive) return;
         setItems(res.data.items || []);

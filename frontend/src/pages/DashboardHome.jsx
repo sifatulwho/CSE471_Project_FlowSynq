@@ -37,27 +37,15 @@ const DashboardHome = () => {
             importResponses: (importReq.data?.items || []).filter((i) => i.status !== 'pending').length,
           });
         } else if (role === 'organization') {
-          const [myReq, imports] = await Promise.all([
-            api.get('/shipment-requests', { params: { limit: 200 } }),
-            api.get('/import-requests', { params: { status: 'pending', limit: 200 } }),
+          const [pending, approved, imports] = await Promise.all([
+            api.get('/shipment-requests', { params: { status: 'pending', limit: 1 } }),
+            api.get('/shipment-requests', { params: { status: 'approved', limit: 1 } }),
+            api.get('/import-requests', { params: { status: 'pending', limit: 1 } }),
           ]);
-          const list = myReq.data?.items || [];
           if (mounted) setWidgets({
-            myShipmentPending: list.filter((i) => i.status === 'pending').length,
-            myShipmentApproved: list.filter((i) => i.status === 'approved').length,
+            myShipmentPending: pending.data?.total || 0,
+            myShipmentApproved: approved.data?.total || 0,
             pendingImportRequests: imports.data?.total || 0,
-          });
-        } else if (role === 'admin') {
-          const [sanctions, requests] = await Promise.all([
-            api.get('/sanctioned-list', { params: { limit: 500 } }),
-            api.get('/shipment-requests', { params: { limit: 5 } }),
-          ]);
-          const items = sanctions.data?.items || [];
-          if (mounted) setWidgets({
-            sanctionedOrganizations: items.filter((i) => i.entryType === 'organization' && i.status === 'active').length,
-            sanctionedCommodities: items.filter((i) => i.entryType === 'commodity' && i.status === 'active').length,
-            sanctionedVessels: items.filter((i) => i.entryType === 'vessel' && i.status === 'active').length,
-            recentShipmentRequestActivity: requests.data?.items?.length || 0,
           });
         }
       } catch {
@@ -77,8 +65,8 @@ const DashboardHome = () => {
     <div className="relative isolate min-h-screen">
       <ImageBackground imageSrc={bgImage} />
 
-      <div className="relative z-10 flex flex-col gap-8 p-6">
-        <div className="relative overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-950/70 p-8 backdrop-blur-sm">
+      <div className="relative z-10 flex flex-col gap-6 p-0 sm:gap-8">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-950/70 p-5 backdrop-blur-sm sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/90">Your workspace</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             {displayName ? (

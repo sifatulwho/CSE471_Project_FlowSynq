@@ -11,18 +11,10 @@ import {
   Legend,
 } from 'recharts';
 import { api } from '../api';
+import { PORT_OPTIONS, COMMODITY_OPTIONS } from '../constants/ports';
 
 
-const COMMODITIES = [  'Container',
-  'General Cargo',
-  'Food Grain',
-  'Fertilizer',
-  'Clinker',
-  'Sugar',
-  'Salt',
-  'Rapeseed',
-  'Mustard Seed',
-  'Oil Tanker' ];
+const COMMODITIES = COMMODITY_OPTIONS;
 
 const HORIZONS = [
   { label: '7 Days', value: 7 },
@@ -49,8 +41,10 @@ const AIForecasting = () => {
   const { profile } = useOutletContext() || {};
   const role = profile?.role;
   const allowed = role === 'admin' || role === 'analyst';
-  const portName = profile?.portName || '';
+  const isAdmin = role === 'admin';
+  const profilePort = profile?.portName || '';
 
+  const [selectedPort, setSelectedPort] = useState(profilePort);
   const [commodity, setCommodity] = useState(COMMODITIES[0]);
   const [horizonDays, setHorizonDays] = useState(30);
 
@@ -63,6 +57,12 @@ const AIForecasting = () => {
   useEffect(() => {
     if (!allowed) navigate('/dashboard', { replace: true });
   }, [allowed, navigate]);
+
+  useEffect(() => {
+    if (profilePort) setSelectedPort(profilePort);
+  }, [profilePort]);
+
+  const portName = isAdmin ? selectedPort : profilePort;
 
   const chartData = useMemo(() => {
     if (!data?.history?.length && !data?.forecast?.length) return [];
@@ -88,7 +88,12 @@ const AIForecasting = () => {
   const onGenerate = async () => {
     setMessage({ type: '', text: '' });
     if (!portName) {
-      setMessage({ type: 'err', text: 'Port is not assigned. Please check your profile.' });
+      setMessage({
+        type: 'err',
+        text: isAdmin
+          ? 'Select a port to generate the forecast.'
+          : 'Port is not assigned. Please check your profile.',
+      });
       return;
     }
     setLoading(true);
@@ -101,11 +106,15 @@ const AIForecasting = () => {
         }),
         api.get('/tanks/inventory', {
           params: { portName, commodity },
-        }),
+        }).catch(() => ({ data: null })),
       ]);
       setData(forecastRes.data);
       setInventory(inventoryRes.data);
-      setMessage({ type: 'ok', text: 'Forecast generated successfully.' });
+      const engineNote = forecastRes.data?.engine?.note;
+      setMessage({
+        type: 'ok',
+        text: engineNote || 'Forecast generated successfully.',
+      });
     } catch (error) {
       setData(null);
       setInventory(null);
@@ -221,12 +230,25 @@ const AIForecasting = () => {
           <div className="grid w-full gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-slate-400">Port</span>
-              <input
-                type="text"
-                value={portName}
-                disabled
-                className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-500"
-              />
+              {isAdmin ? (
+                <select
+                  value={selectedPort}
+                  onChange={(e) => setSelectedPort(e.target.value)}
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-500"
+                >
+                  <option value="">Select port</option>
+                  {PORT_OPTIONS.map((p) => (
+                    <option key={p.code} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={portName}
+                  disabled
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-cyan-500"
+                />
+              )}
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-slate-400">Commodity type</span>

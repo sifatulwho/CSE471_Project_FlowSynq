@@ -9,38 +9,43 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        scope: build,runtime
         sync: false
       - key: JWT_SECRET
-        scope: build,runtime
         sync: false
       - key: SESSION_SECRET
-        scope: build,runtime
         sync: false
       - key: CLIENT_URL
         value: https://flowsynq-frontend.onrender.com
-        scope: build,runtime
-        sync: false 
       - key: GOOGLE_CLIENT_ID
-        scope: runtime
         sync: false
       - key: GOOGLE_CLIENT_SECRET
-        scope: runtime
         sync: false
       - key: GOOGLE_CALLBACK_URL
-        scope: runtime
         sync: false
       - key: OPENWEATHER_API_KEY
-        scope: runtime
         sync: false
       - key: SEAROUTES_API_KEY
-        scope: runtime
         sync: false
+      # Point Node backend at the Render Python services (not localhost)
+      - key: PYTHON_AI_URL
+        value: https://flowsynq-optimization.onrender.com
       - key: OPTIMIZATION_SERVICE_URL
-        scope: runtime
-        sync: false
+        value: https://flowsynq-optimization.onrender.com
       - key: ANALYTICS_SERVICE_URL
-        scope: runtime
+        value: https://flowsynq-analytics.onrender.com/analytics/recommendations
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: NOMINATIM_USER_AGENT
         sync: false
 
   - type: static_site
@@ -51,7 +56,7 @@ services:
       - key: VITE_API_URL
         value: https://flowsynq-backend.onrender.com
       - key: VITE_GOOGLE_CLIENT_ID
-        value: 466548527072-98q67818i2h6416uvit9111gqhmm1u1q.apps.googleusercontent.com
+        sync: false
 
   - type: web
     name: flowsynq-optimization
@@ -60,8 +65,8 @@ services:
     buildCommand: pip install -r optimization_service/requirements.txt
     startCommand: cd optimization_service && python main.py
     envVars:
-      - key: PORT
-        value: 8000
+      - key: PYTHON_VERSION
+        value: "3.11.9"
 
   - type: web
     name: flowsynq-analytics
@@ -70,5 +75,5 @@ services:
     buildCommand: pip install -r optimization_service/requirements.txt
     startCommand: cd optimization_service && python analytics_service.py
     envVars:
-      - key: PORT
-        value: 8001
+      - key: PYTHON_VERSION
+        value: "3.11.9"
