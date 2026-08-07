@@ -45,3 +45,6 @@ coverage/
 (2).env
 (2).gitignore
 .api/
+
+docs/
+uploads/
