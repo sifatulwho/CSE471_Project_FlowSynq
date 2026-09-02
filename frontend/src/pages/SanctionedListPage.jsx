@@ -75,9 +75,19 @@ const SanctionedListPage = ({ adminMode = false }) => {
   };
 
   const deactivate = async (id) => {
-    if (!window.confirm('Deactivate this sanctioned entry?')) return;
+    if (!window.confirm('Deactivate this sanctioned entry? It will no longer flag shipment verifications.')) return;
     try {
       await api.delete(`/sanctioned-list/${id}`);
+      load();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Action failed.');
+    }
+  };
+
+  const activate = async (id) => {
+    if (!window.confirm('Re-activate this sanctioned entry? It will again be flagged in shipment verifications.')) return;
+    try {
+      await api.put(`/sanctioned-list/${id}`, { status: 'active' });
       load();
     } catch (err) {
       setError(err?.response?.data?.message || 'Action failed.');
@@ -183,7 +193,11 @@ const SanctionedListPage = ({ adminMode = false }) => {
                       <td className="px-3 py-2">
                         <div className="flex gap-2">
                           <button onClick={() => openEdit(row)} className="rounded bg-cyan-500/20 px-2 py-1 text-xs text-cyan-300">Edit</button>
-                          <button onClick={() => deactivate(row._id)} className="rounded bg-rose-500/20 px-2 py-1 text-xs text-rose-300">Deactivate</button>
+                          {row.status === 'active' ? (
+                            <button onClick={() => deactivate(row._id)} className="rounded bg-rose-500/20 px-2 py-1 text-xs text-rose-300">Deactivate</button>
+                          ) : (
+                            <button onClick={() => activate(row._id)} className="rounded bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">Activate</button>
+                          )}
                         </div>
                       </td>
                     )}

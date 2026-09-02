@@ -128,6 +128,7 @@ exports.verifyShipmentRequest = async (req, res) => {
       reasons: result.reasons,
       matchedEntities: result.matchedEntities,
     };
+    doc.markModified('sanctionCheck');
     if (result.isSanctioned) {
       doc.status = 'sanctioned';
       doc.reviewReason = result.reasons.join('; ');
@@ -156,6 +157,21 @@ exports.approveShipmentRequest = async (req, res) => {
     if (!doc.sanctionCheck?.checkedAt) return res.status(400).json({ message: 'Run sanction verification before approval.' });
     if (doc.sanctionCheck?.isSanctioned) return res.status(400).json({ message: 'Sanctioned request cannot be approved.' });
 
+    // Safely convert startingPort from ShipmentRequest (Mixed type: string or object)
+    // to the portSchema shape expected by the Shipment model { name, code, coordinates }
+    let startingPort = null;
+    if (doc.startingPort) {
+      if (typeof doc.startingPort === 'object' && doc.startingPort !== null && doc.startingPort.name) {
+        startingPort = {
+          name: String(doc.startingPort.name || ''),
+          code: String(doc.startingPort.code || ''),
+          coordinates: doc.startingPort.coordinates || null,
+        };
+      } else if (typeof doc.startingPort === 'string' && doc.startingPort.trim()) {
+        startingPort = { name: doc.startingPort.trim(), code: '', coordinates: null };
+      }
+    }
+
     const shipment = await Shipment.create({
       shipName: doc.vesselName,
       arrivalTime: doc.requestedArrivalTime,
@@ -166,7 +182,7 @@ exports.approveShipmentRequest = async (req, res) => {
       assignedDock: '',
       status: 'En Route',
       notes: doc.notes ? [{ text: `From shipment request ${doc._id}: ${doc.notes}`, author: 'System' }] : [],
-      startingPort: doc.startingPort || null,
+      startingPort,
       estimatedArrivalTime: doc.requestedArrivalTime,
     });
 
@@ -174,7 +190,7 @@ exports.approveShipmentRequest = async (req, res) => {
     doc.createdShipmentId = shipment._id;
     doc.reviewedAt = new Date();
     doc.reviewedBy = req.user.id;
-    doc.reviewReason = norm(req.body.reason);
+    doc.reviewReason = norm(req.body?.reason);
     await doc.save();
 
     const io = req.app.get('io');
@@ -194,7 +210,8 @@ exports.approveShipmentRequest = async (req, res) => {
 
     return res.json({ message: 'Shipment request approved.', request: doc, shipment });
   } catch (error) {
-    return res.status(500).json({ message: 'Unable to approve shipment request.' });
+    console.error('[approveShipmentRequest] Error:', error?.message || error);
+    return res.status(500).json({ message: 'Unable to approve shipment request.', detail: error?.message });
   }
 };
 
@@ -205,7 +222,7 @@ exports.rejectShipmentRequest = async (req, res) => {
     const doc = await ShipmentRequest.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: 'Shipment request not found.' });
     if (!['pending', 'sanctioned'].includes(doc.status)) return res.status(400).json({ message: `Cannot reject request in ${doc.status} status.` });
-    const reason = norm(req.body.reason);
+    const reason = norm(req.body?.reason);
     if (!reason) return res.status(400).json({ message: 'Rejection reason is required.' });
     doc.status = doc.sanctionCheck?.isSanctioned ? 'sanctioned' : 'rejected';
     doc.reviewReason = reason;
