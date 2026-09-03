@@ -373,6 +373,15 @@ const DashboardLayout = () => {
                 </Link>
               </li>
             )}
+
+            {isAdmin && (
+              <li>
+                <Link to="/dashboard/admin/demo-requests" className={navBtnClass(location.pathname === '/dashboard/admin/demo-requests')}>
+                  <span className="h-5 w-5 shrink-0 text-center">D</span>
+                  {sidebarOpen && <span>Demo Requests</span>}
+                </Link>
+              </li>
+            )}
             {role === 'organization' && (
               <li>
                 <Link to="/dashboard/shipments" className={navBtnClass(location.pathname === '/dashboard/shipments')}>
@@ -393,6 +402,12 @@ const DashboardLayout = () => {
             </li>
             {role === 'organization' && (
               <>
+                <li>
+                  <Link to="/dashboard/billing" className={navBtnClass(location.pathname.includes('/dashboard/billing'))}>
+                    <span className="h-5 w-5 shrink-0 text-center">$</span>
+                    {sidebarOpen && <span>Subscription</span>}
+                  </Link>
+                </li>
                 <li>
                   <Link to="/dashboard/shipment-requests" className={navBtnClass(location.pathname.includes('/dashboard/shipment-requests'))}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -563,6 +578,11 @@ const DashboardLayout = () => {
           {error && (
             <div className="mb-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-3 text-sm font-medium text-rose-200 shadow-xl backdrop-blur-xl">
               {error}
+            </div>
+          )}
+          {profile.isDemo && (
+            <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-3 text-sm text-amber-200">
+              Demo mode: view-only access. Expires {new Date(profile.demoExpiresAt).toLocaleString()}.
             </div>
           )}
           <Outlet context={{ profile, token }} />

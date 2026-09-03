@@ -192,6 +192,10 @@ const LoginPage = () => {
             <Link to="/signup" className="auth-link font-medium text-cyan-300 hover:text-cyan-200">
               Register
             </Link>
+              {' '}|{' '}
+              <Link to="/demo-request" className="auth-link font-medium text-cyan-300 hover:text-cyan-200">
+                Request a demo
+              </Link>
           </p>
         </div>
       </div>

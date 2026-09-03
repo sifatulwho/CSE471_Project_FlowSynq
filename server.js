@@ -1,4 +1,12 @@
 require('dotenv').config();
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('Stripe payments are disabled: STRIPE_SECRET_KEY is not configured.');
+}
+if (process.env.NODE_ENV === 'production') {
+  ['MONGODB_URI', 'JWT_SECRET', 'CLIENT_URL', 'EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_FROM', 'GOOGLE_CLIENT_ID'].forEach((key) => {
+    if (!process.env[key]) console.warn(`Production configuration is missing ${key}.`);
+  });
+}
 const express = require('express');
 const http = require('http');             //new line for alert (3,6,11,12,13))
 const mongoose = require('mongoose');
@@ -19,6 +27,9 @@ const shipmentRequestRoutes = require('./routes/shipmentRequestRoutes');
 const importRequestRoutes = require('./routes/importRequestRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const supplyPlanRoutes = require('./routes/supplyPlanRoutes');
+const demoRequestRoutes = require('./routes/demoRequestRoutes');
+const { handleWebhook } = require('./controllers/demoRequestController');
+const billingRoutes = require('./routes/billingRoutes');
 const portGeocodingRoutes = require('./routes/portGeocodingRoutes');
 const marineRouteRoutes = require('./routes/marineRouteRoutes');
 const EmergencyLog = require('./models/EmergencyLog');
@@ -76,6 +87,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.post('/api/demo-requests/webhook', express.raw({ type: 'application/json' }), handleWebhook);
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), require('./controllers/billingController').handleWebhook);
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -97,6 +110,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/supply-plans', supplyPlanRoutes);
 app.use('/api/port-geocoding', portGeocodingRoutes);
 app.use('/api/marine-route', marineRouteRoutes);
+app.use('/api/demo-requests', demoRequestRoutes);
+app.use('/api/billing', billingRoutes);
 
 // Health check endpoint for monitoring
 app.get('/health', (req, res) => {

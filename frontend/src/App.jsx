@@ -38,6 +38,9 @@ import DailyPlanningDashboard from './pages/DailyPlanningDashboard';
 import SupplyPlanHistory from './pages/SupplyPlanHistory';
 import MarineRoutePlanner from './pages/MarineRoutePlanner';
 import AdminApprovePage from './pages/AdminApprovePage';
+import DemoRequestPage from './pages/DemoRequestPage';
+import AdminDemoRequestsPage from './pages/AdminDemoRequestsPage';
+import BillingPage from './pages/organization/BillingPage';
 function App() {
   return (
     <SocketProvider>
@@ -60,6 +63,7 @@ function App() {
           <Route path="/verify-otp" element={<VerifyOTPPage />} />
           <Route path="/set-password" element={<SetPasswordPage />} />
           <Route path="/admin/approve-request" element={<AdminApprovePage />} />
+          <Route path="/demo-request" element={<DemoRequestPage />} />
 
           {/* Main Dashboard (Admin / Analyst / all roles) */}
           <Route path="/dashboard" element={<DashboardLayout />}>
@@ -83,11 +87,14 @@ function App() {
             <Route path="supply-planning" element={<DailyPlanningDashboard />} />
             <Route path="supply-planning/history" element={<SupplyPlanHistory />} />
             <Route path="marine-route" element={<MarineRoutePlanner />} />
+            <Route path="admin/demo-requests" element={<AdminDemoRequestsPage />} />
+            <Route path="billing" element={<BillingPage />} />
           </Route>
 
           <Route path="/organization" element={<DashboardLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="shipment-requests/create" element={<ShipmentRequestCreatePage />} />
+            <Route path="billing" element={<BillingPage />} />
             <Route path="shipment-requests" element={<ShipmentRequestsPage />} />
             <Route path="shipment-requests/:id" element={<ShipmentRequestReviewPage />} />
             <Route path="import-requests" element={<OrganizationImportRequestsPage />} />

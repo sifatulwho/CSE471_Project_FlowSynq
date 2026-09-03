@@ -330,6 +330,8 @@ exports.register = async (req, res) => {
         portName: getResolvedPortName(user),
         port: getResolvedPortName(user),
         profilePicture: user.profilePicture || '',
+        isDemo: Boolean(user.isDemo),
+        demoExpiresAt: user.demoExpiresAt || null,
       },
     });
   } catch (error) {
@@ -390,6 +392,8 @@ exports.login = async (req, res) => {
         portName: resolvedPortName,
         port: resolvedPortName,
         profilePicture: user.profilePicture || '',
+        isDemo: Boolean(user.isDemo),
+        demoExpiresAt: user.demoExpiresAt || null,
       },
     });
   } catch (error) {

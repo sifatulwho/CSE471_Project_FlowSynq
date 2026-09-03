@@ -40,6 +40,21 @@ const sendOTPEmail = async (email, otp) => {
   }
 };
 
+const sendDemoCredentialsEmail = async (email, username, password, expiresAt) => {
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: process.env.EMAIL_PORT === '465',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
+  await transporter.sendMail({
+    from: `"Flowsynq Demo" <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: 'Your approved FlowSynq demo access',
+    html: `<p>Your FlowSynq demo has been approved.</p><p><strong>Username:</strong> ${username}<br><strong>Password:</strong> ${password}</p><p>This account is view-only and expires on ${new Date(expiresAt).toISOString()}.</p>`,
+  });
+};
+
 const sendAdminApprovalEmail = async (adminEmail, requestDetails, approvalLink) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -213,6 +228,7 @@ const sendEmergencyBroadcastEmail = async (users, alertData) => {
 
 module.exports = {
   sendOTPEmail,
+  sendDemoCredentialsEmail,
   sendAdminApprovalEmail,
   sendApprovalSuccessOTPEmail,
   sendApprovalRejectionEmail,

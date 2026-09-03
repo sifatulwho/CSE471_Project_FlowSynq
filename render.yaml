@@ -5,9 +5,12 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22.12.0"
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -22,6 +25,8 @@ services:
         sync: false
       - key: GOOGLE_CALLBACK_URL
         sync: false
+      - key: DEFAULT_PORT_NAME
+        value: default
       - key: OPENWEATHER_API_KEY
         sync: false
       - key: SEAROUTES_API_KEY
@@ -45,6 +50,16 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_SUBSCRIPTION_WEBHOOK_SECRET
+        sync: false
+      - key: DEMO_DURATION_DAYS
+        value: "7"
+      - key: DEMO_PORT_NAME
+        value: FlowSynq Demo Port
       - key: NOMINATIM_USER_AGENT
         sync: false
 
@@ -52,9 +67,15 @@ services:
     name: flowsynq-frontend
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://flowsynq-backend.onrender.com
+      - key: NODE_VERSION
+        value: "22.12.0"
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false
 

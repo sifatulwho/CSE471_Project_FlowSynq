@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { COMMODITY_OPTIONS, PORT_OPTIONS } from '../../constants/ports';
 import { api } from '../../api';
@@ -25,6 +26,19 @@ const ShipmentRequestCreatePage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [billing, setBilling] = useState(null);
+  const [billingLoading, setBillingLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/billing/status')
+      .then((res) => setBilling(res.data))
+      .catch((err) => setError(err?.response?.data?.message || 'Unable to verify subscription status.'))
+      .finally(() => setBillingLoading(false));
+  }, []);
+
+  const subscriptionActive = ['active', 'trialing'].includes(billing?.status)
+    && billing?.currentPeriodEnd
+    && new Date(billing.currentPeriodEnd) > new Date();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -68,6 +82,14 @@ const ShipmentRequestCreatePage = () => {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-white">Submit Shipment Request</h2>
+      {!billingLoading && !subscriptionActive && (
+        <div className="max-w-3xl rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 text-amber-100">
+          <p className="font-semibold">Subscription required</p>
+          <p className="mt-1 text-sm text-amber-200/80">Subscribe for $100 USD per month or renew your expired subscription to continue sending shipment requests.</p>
+          <button type="button" onClick={() => navigate('/dashboard/billing')} className="mt-4 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">Subscribe or renew</button>
+        </div>
+      )}
+      {subscriptionActive && (
       <form onSubmit={submit} className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-5 space-y-3 max-w-3xl">
         <input value={profile?.fullName || profile?.username || ''} readOnly className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100" />
         <select value={form.commodityType} onChange={(e) => setForm((p) => ({ ...p, commodityType: e.target.value }))} className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100">
@@ -103,8 +125,9 @@ const ShipmentRequestCreatePage = () => {
           </select>
         )}
         <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Additional Details" className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100" />
-        <button disabled={loading} type="submit" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{loading ? 'Submitting...' : 'Send Request to Operator'}</button>
+        <button disabled={loading || billingLoading || !subscriptionActive} type="submit" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{loading ? 'Submitting...' : 'Send Request to Operator'}</button>
       </form>
+      )}
       {error && <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm text-rose-200">{error}</div>}
     </div>
   );

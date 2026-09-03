@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
   },
   profilePicture: { type: String, default: '' },
   exportCommodities: { type: [String], default: [] },
+  isDemo: { type: Boolean, default: false, index: true },
+  demoRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'DemoRequest', default: null },
+  demoExpiresAt: { type: Date, default: null },
+  demoDisabled: { type: Boolean, default: false },
 }, {
   timestamps: true,
 });
