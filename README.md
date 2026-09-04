@@ -20,13 +20,7 @@ MONGODB_URI=mongodb://localhost:27017/flowsync
 JWT_SECRET=your_jwt_secret_key_here
 CLIENT_URL=http://localhost:5173
 ADMIN_EMAIL=admin@flowsynq.org
-# Secure demo checkout and approval
-STRIPE_SECRET_KEY=sk_live_or_test_key
-STRIPE_WEBHOOK_SECRET=whsec_webhook_signing_secret
-# Use the Stripe CLI signing secret here; STRIPE_WEBHOOK_SECRET is used as a fallback.
-STRIPE_SUBSCRIPTION_WEBHOOK_SECRET=whsec_subscription_webhook_signing_secret
-DEMO_DURATION_DAYS=7
-DEMO_PORT_NAME=FlowSynq Demo Port
+
 ```
 
 Configure the Stripe webhook endpoint as
