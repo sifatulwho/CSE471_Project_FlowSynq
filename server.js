@@ -134,8 +134,8 @@ app.get('/health', (req, res) => {
 
 app.get('/health/email', async (req, res) => {
   try {
-    await verifyEmailConnection();
-    return res.json({ status: 'ok', emailConfigured: true, provider: getEmailProvider(), message: process.env.RESEND_API_KEY ? 'HTTPS email provider verified.' : 'SMTP connection verified.' });
+    const verified = await verifyEmailConnection();
+    return res.json({ status: 'ok', emailConfigured: true, provider: verified.provider || getEmailProvider(), port: verified.port, message: process.env.RESEND_API_KEY ? 'HTTPS email provider verified.' : 'SMTP connection verified.' });
   } catch (error) {
     console.error('SMTP health check failed:', error.message);
     return res.status(503).json({
@@ -143,6 +143,9 @@ app.get('/health/email', async (req, res) => {
       emailConfigured: true,
       provider: process.env.RESEND_API_KEY ? 'resend' : (process.env.EMAIL_PROVIDER || 'smtp'),
       message: 'Email provider connection failed.',
+      errorCode: error.code || undefined,
+      command: error.command || undefined,
+      responseCode: error.responseCode || undefined,
       detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
     });
   }

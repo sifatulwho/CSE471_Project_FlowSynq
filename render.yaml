@@ -41,7 +41,7 @@ services:
       - key: EMAIL_HOST
         sync: false
       - key: EMAIL_PORT
-        sync: false
+        value: "587"
       - key: EMAIL_PROVIDER
         value: brevo
       - key: EMAIL_USER

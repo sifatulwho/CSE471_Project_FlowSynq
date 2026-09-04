@@ -32,7 +32,39 @@ const createTransporter = () => nodemailer.createTransport({
   connectionTimeout: 15000,
   greetingTimeout: 15000,
   socketTimeout: 20000,
+  authMethod: 'LOGIN',
+  tls: { minVersion: 'TLSv1.2' },
 });
+
+const getTransportPorts = () => {
+  const configured = getMailConfig().port;
+  if (getMailConfig().provider !== 'brevo' || configured === 465) return [configured];
+  return Array.from(new Set([configured, 2525]));
+};
+
+const sendSmtpMail = async (options) => {
+  let lastError;
+  for (const port of getTransportPorts()) {
+    try {
+      const config = getMailConfig();
+      const transporter = nodemailer.createTransport({
+        ...config,
+        port,
+        requireTLS: port !== 465,
+        authMethod: 'LOGIN',
+        tls: { minVersion: 'TLSv1.2', servername: config.host },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+      });
+      return await transporter.sendMail({ ...options, from: options.from || `"Flowsynq" <${config.from}>` });
+    } catch (error) {
+      lastError = error;
+      console.error(`SMTP send failed on port ${port}:`, error.code || error.message);
+    }
+  }
+  throw lastError;
+};
 
 const sendMail = async (options) => {
   if (useResend()) {
@@ -57,9 +89,7 @@ const sendMail = async (options) => {
     }
     return response.json();
   }
-  const config = getMailConfig();
-  const transporter = createTransporter();
-  return transporter.sendMail({ ...options, from: options.from || `"Flowsynq" <${config.from}>` });
+  return sendSmtpMail(options);
 };
 
 const verifyEmailConnection = async () => {
@@ -71,9 +101,28 @@ const verifyEmailConnection = async () => {
     if (!response.ok) throw new Error(`Resend API returned HTTP ${response.status}.`);
     return true;
   }
-  const transporter = createTransporter();
-  await transporter.verify();
-  return true;
+  let lastError;
+  for (const port of getTransportPorts()) {
+    try {
+      const config = getMailConfig();
+      const transporter = nodemailer.createTransport({
+        ...config,
+        port,
+        requireTLS: port !== 465,
+        authMethod: 'LOGIN',
+        tls: { minVersion: 'TLSv1.2', servername: config.host },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+      });
+      await transporter.verify();
+      return { provider: config.provider, port };
+    } catch (error) {
+      lastError = error;
+      console.error(`SMTP verification failed on port ${port}:`, error.code || error.message);
+    }
+  }
+  throw lastError;
 };
 
 const getEmailProvider = () => (useResend() ? 'resend' : getMailConfig().provider);

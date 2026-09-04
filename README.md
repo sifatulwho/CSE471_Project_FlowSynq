@@ -97,7 +97,8 @@ URL only if using the OAuth callback flow.
 
 For SMTP, set `EMAIL_PROVIDER=smtp`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`,
 `EMAIL_PASS`, and `EMAIL_FROM`. For Brevo, use
-`EMAIL_PROVIDER=brevo`, `EMAIL_HOST=smtp-relay.brevo.com`, `EMAIL_PORT=587`,
+`EMAIL_PROVIDER=brevo`, `EMAIL_HOST=smtp-relay.brevo.com`, `EMAIL_PORT=587`
+(the application automatically retries Brevo on port 2525 if 587 is blocked),
 your Brevo login email as `EMAIL_USER`, and the Brevo SMTP key as
 `EMAIL_PASS`. `EMAIL_FROM` must be a verified Brevo sender. This is used by
 registration OTP, approval emails, demo credentials, and operational
