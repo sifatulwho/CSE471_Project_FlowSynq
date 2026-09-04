@@ -1,17 +1,30 @@
 const nodemailer = require('nodemailer');
 
+const useResend = () => Boolean(String(process.env.RESEND_API_KEY || '').trim());
+
+const cleanEnv = (value) => String(value || '').trim().replace(/^["']|["']$/g, '');
+
 const getMailConfig = () => {
-  const host = String(process.env.EMAIL_HOST || '').trim();
-  const port = Number.parseInt(String(process.env.EMAIL_PORT || '587').trim(), 10);
-  const user = String(process.env.EMAIL_USER || '').trim();
+  const provider = cleanEnv(process.env.EMAIL_PROVIDER).toLowerCase() || 'smtp';
+  const host = cleanEnv(process.env.EMAIL_HOST) || (provider === 'brevo' ? 'smtp-relay.brevo.com' : 'smtp.gmail.com');
+  const port = Number.parseInt(cleanEnv(process.env.EMAIL_PORT) || '587', 10);
+  const user = cleanEnv(process.env.EMAIL_USER);
   // Gmail displays app passwords in groups; SMTP authentication requires the
   // same value without the visual spaces.
-  const pass = String(process.env.EMAIL_PASS || '').replace(/\s+/g, '');
-  const from = String(process.env.EMAIL_FROM || user).trim();
+  const pass = cleanEnv(process.env.EMAIL_PASS).replace(/\s+/g, '');
+  const from = cleanEnv(process.env.EMAIL_FROM) || user;
   if (!host || !Number.isInteger(port) || !user || !pass || !from) {
     throw new Error('SMTP configuration is incomplete. Set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, and EMAIL_FROM.');
   }
-  return { host, port, secure: port === 465, auth: { user, pass }, from };
+  return {
+    host,
+    port,
+    secure: port === 465,
+    requireTLS: port !== 465,
+    auth: { user, pass },
+    from,
+    provider,
+  };
 };
 
 const createTransporter = () => nodemailer.createTransport({
@@ -22,16 +35,48 @@ const createTransporter = () => nodemailer.createTransport({
 });
 
 const sendMail = async (options) => {
+  if (useResend()) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${String(process.env.RESEND_API_KEY).trim()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: options.from || process.env.EMAIL_FROM,
+        to: Array.isArray(options.to) ? options.to : [options.to],
+        bcc: options.bcc,
+        subject: options.subject,
+        html: options.html,
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`Resend API returned HTTP ${response.status}: ${detail.slice(0, 300)}`);
+    }
+    return response.json();
+  }
   const config = getMailConfig();
   const transporter = createTransporter();
   return transporter.sendMail({ ...options, from: options.from || `"Flowsynq" <${config.from}>` });
 };
 
 const verifyEmailConnection = async () => {
+  if (useResend()) {
+    const response = await fetch('https://api.resend.com/domains', {
+      headers: { Authorization: `Bearer ${String(process.env.RESEND_API_KEY).trim()}` },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`Resend API returned HTTP ${response.status}.`);
+    return true;
+  }
   const transporter = createTransporter();
   await transporter.verify();
   return true;
 };
+
+const getEmailProvider = () => (useResend() ? 'resend' : getMailConfig().provider);
 
 const sendOTPEmail = async (email, otp) => {
   try {
@@ -199,6 +244,7 @@ const sendEmergencyBroadcastEmail = async (users, alertData) => {
 };
 
 module.exports = {
+  getEmailProvider,
   verifyEmailConnection,
   sendOTPEmail,
   sendDemoCredentialsEmail,

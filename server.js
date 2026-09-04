@@ -37,7 +37,7 @@ const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const { resolveUserPort } = require('./utils/resolveUserPort');
 const { startShipmentRiskJob } = require('./jobs/shipmentRiskJob');
-const { sendEmergencyBroadcastEmail, verifyEmailConnection } = require('./utils/emailService');
+const { sendEmergencyBroadcastEmail, verifyEmailConnection, getEmailProvider } = require('./utils/emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -120,28 +120,32 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     emailConfigured: Boolean(
-      process.env.EMAIL_HOST
-      && process.env.EMAIL_PORT
-      && process.env.EMAIL_USER
-      && process.env.EMAIL_PASS
-      && (process.env.EMAIL_FROM || process.env.EMAIL_USER)
+      process.env.RESEND_API_KEY
+      || (
+        process.env.EMAIL_HOST
+        && process.env.EMAIL_PORT
+        && process.env.EMAIL_USER
+        && process.env.EMAIL_PASS
+        && (process.env.EMAIL_FROM || process.env.EMAIL_USER)
+      )
     ),
   });
+});
 
-  app.get('/health/email', async (req, res) => {
-    try {
-      await verifyEmailConnection();
-      return res.json({ status: 'ok', emailConfigured: true, message: 'SMTP connection verified.' });
-    } catch (error) {
-      console.error('SMTP health check failed:', error.message);
-      return res.status(503).json({
-        status: 'error',
-        emailConfigured: true,
-        message: 'SMTP connection failed.',
-        detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
-      });
-    }
-  });
+app.get('/health/email', async (req, res) => {
+  try {
+    await verifyEmailConnection();
+    return res.json({ status: 'ok', emailConfigured: true, provider: getEmailProvider(), message: process.env.RESEND_API_KEY ? 'HTTPS email provider verified.' : 'SMTP connection verified.' });
+  } catch (error) {
+    console.error('SMTP health check failed:', error.message);
+    return res.status(503).json({
+      status: 'error',
+      emailConfigured: true,
+      provider: process.env.RESEND_API_KEY ? 'resend' : (process.env.EMAIL_PROVIDER || 'smtp'),
+      message: 'Email provider connection failed.',
+      detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
+    });
+  }
 });
 
 // Database Connection

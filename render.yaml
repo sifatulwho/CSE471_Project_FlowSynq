@@ -42,11 +42,15 @@ services:
         sync: false
       - key: EMAIL_PORT
         sync: false
+      - key: EMAIL_PROVIDER
+        value: brevo
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS
         sync: false
       - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
         sync: false
       - key: ADMIN_EMAIL
         sync: false

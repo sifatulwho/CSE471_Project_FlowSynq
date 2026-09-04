@@ -95,9 +95,18 @@ frontend `VITE_API_URL`, and the same Google OAuth client ID in both
 origin to Google Cloud Authorized JavaScript origins. Add the backend callback
 URL only if using the OAuth callback flow.
 
-For Gmail SMTP, enable two-step verification and use a Gmail app password for
-`EMAIL_PASS`, not the normal account password. This is used by registration
-OTP, approval emails, demo credentials, and operational notifications.
+For SMTP, set `EMAIL_PROVIDER=smtp`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`,
+`EMAIL_PASS`, and `EMAIL_FROM`. For Brevo, use
+`EMAIL_PROVIDER=brevo`, `EMAIL_HOST=smtp-relay.brevo.com`, `EMAIL_PORT=587`,
+your Brevo login email as `EMAIL_USER`, and the Brevo SMTP key as
+`EMAIL_PASS`. `EMAIL_FROM` must be a verified Brevo sender. This is used by
+registration OTP, approval emails, demo credentials, and operational
+notifications.
+If Render cannot connect to Gmail SMTP, use Resend instead: create and verify a
+sender domain at `resend.com`, set `RESEND_API_KEY` and `EMAIL_FROM` in the
+backend, and leave the SMTP variables present or remove them. When
+`RESEND_API_KEY` is set, the application uses Resend's HTTPS API and bypasses
+SMTP networking restrictions.
 
 Configure Stripe webhooks to:
 
