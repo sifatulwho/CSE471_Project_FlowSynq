@@ -95,43 +95,6 @@ frontend `VITE_API_URL`, and the same Google OAuth client ID in both
 origin to Google Cloud Authorized JavaScript origins. Add the backend callback
 URL only if using the OAuth callback flow.
 
-### Email Service Configuration
-
-FlowSynq supports multiple email transports with automatic priority and fallback:
-
-#### 1. Local Run (Gmail SMTP)
-Pre-configured and works immediately out of the box in `.env`:
-```env
-EMAIL_PROVIDER=gmail
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=REDACTED_EMAIL
-EMAIL_PASS=REDACTED_PASSWORD
-EMAIL_FROM=REDACTED_EMAIL
-```
-*Note:* Gmail requires an **App Password** (16 characters without spaces) generated from Google Account -> Security -> 2-Step Verification -> App Passwords.
-
-#### 2. Render Run (Cloud Deployment)
-> **Important:** Render Free Tier blocks outbound SMTP traffic on ports **25, 465, and 587**. Direct SMTP connections will timeout or fail. For production emails on Render, use an HTTPS API (Port 443):
-
-- **Option A: Resend (Recommended)**
-  1. Sign up free at [resend.com](https://resend.com) (free 3,000 emails/month).
-  2. Create an API key (`re_...`).
-  3. In Render Dashboard -> Environment Variables, add:
-     - `RESEND_API_KEY`: your Resend API key
-     - `EMAIL_FROM`: `onboarding@resend.dev` (or your verified domain sender)
-
-- **Option B: Brevo HTTPS API**
-  1. Sign up at [brevo.com](https://brevo.com).
-  2. Go to **SMTP & API -> API Keys** and generate an API key (starts with `xkeysib-`).
-     *(Note: this is different from the Brevo SMTP key which starts with `xsmtpsib-`)*.
-  3. In Render Dashboard -> Environment Variables, add:
-     - `BREVO_API_KEY`: your Brevo API key
-     - `EMAIL_FROM`: your verified Brevo sender email
-
-- **Graceful Fallback Mode:**
-  If running on Render or locally without external email credentials, the email service automatically prints formatted email messages (including verification OTPs, approval links, and demo passwords) directly into the server logs/stdout. User registration, OTP verification, and approvals will succeed smoothly without hanging or returning 500 errors!
-
 #### 3. Verification & Health Checks
 - Open `https://<backend-url>/health` to check general service and email configuration status.
 - Open `https://<backend-url>/health/email` to perform an active email transport verification test.
