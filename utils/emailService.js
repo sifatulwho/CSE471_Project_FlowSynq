@@ -2,6 +2,20 @@ const nodemailer = require('nodemailer');
 
 const cleanEnv = (value) => String(value || '').trim().replace(/^["']|["']$/g, '');
 
+const extractEmailAddress = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  const match = str.match(/<([^>]+)>/);
+  if (match) return match[1].trim();
+  return str.trim().replace(/^["']|["']$/g, '');
+};
+
+const extractSenderName = (str, defaultName = 'FlowSynq') => {
+  if (!str || typeof str !== 'string') return defaultName;
+  const match = str.match(/^\s*"?([^"<]+)"?\s*</);
+  if (match && match[1].trim()) return match[1].trim();
+  return defaultName;
+};
+
 const isRenderEnvironment = () => {
   return Boolean(
     process.env.RENDER === 'true' ||
@@ -107,7 +121,7 @@ const logEmailFallback = (options, reason) => {
 
 const sendResendMail = async (options) => {
   const apiKey = cleanEnv(process.env.RESEND_API_KEY);
-  const from = cleanEnv(options.from || process.env.EMAIL_FROM || 'Flowsynq <onboarding@resend.dev>');
+  const from = cleanEnv(options.from || process.env.EMAIL_FROM || 'FlowSynq <onboarding@resend.dev>');
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -133,30 +147,70 @@ const sendResendMail = async (options) => {
 
 const sendBrevoApiMail = async (options) => {
   const apiKey = cleanEnv(process.env.BREVO_API_KEY);
-  const from = cleanEnv(process.env.EMAIL_FROM || process.env.EMAIL_USER);
-  if (!from) throw new Error('EMAIL_FROM or EMAIL_USER is required when using BREVO_API_KEY.');
+  const rawFrom = options.from || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  const senderEmail = extractEmailAddress(rawFrom);
+  const senderName = cleanEnv(process.env.EMAIL_FROM_NAME) || extractSenderName(rawFrom, 'FlowSynq');
+
+  if (!senderEmail) {
+    throw new Error('Valid EMAIL_FROM or EMAIL_USER is required when using BREVO_API_KEY.');
+  }
+
+  const rawRecipients = Array.isArray(options.to) ? options.to : [options.to];
+  const toList = rawRecipients
+    .map((r) => {
+      if (typeof r === 'object' && r?.email) {
+        return { email: extractEmailAddress(r.email), name: r.name || undefined };
+      }
+      const email = extractEmailAddress(r);
+      const name = extractSenderName(r, '');
+      return name ? { email, name } : { email };
+    })
+    .filter((r) => Boolean(r.email));
+
+  if (!toList.length) {
+    throw new Error('No valid recipient email address provided.');
+  }
+
+  const bccList = options.bcc
+    ? (Array.isArray(options.bcc) ? options.bcc : [options.bcc])
+        .map((r) => ({ email: extractEmailAddress(typeof r === 'object' ? r?.email : r) }))
+        .filter((r) => Boolean(r.email))
+    : undefined;
+
+  const payload = {
+    sender: { email: senderEmail, name: senderName },
+    to: toList,
+    bcc: bccList && bccList.length ? bccList : undefined,
+    subject: options.subject,
+    htmlContent: options.html,
+  };
 
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
       'api-key': apiKey,
       'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
-    body: JSON.stringify({
-      sender: { email: from, name: 'Flowsynq' },
-      to: (Array.isArray(options.to) ? options.to : [options.to]).map((email) => ({ email })),
-      bcc: options.bcc ? options.bcc.map((email) => ({ email })) : undefined,
-      subject: options.subject,
-      htmlContent: options.html,
-    }),
+    body: JSON.stringify(payload),
     signal: AbortSignal.timeout(15000),
   });
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Brevo API HTTP ${response.status}: ${detail.slice(0, 300)}`);
+  const responseText = await response.text();
+  let responseData;
+  try {
+    responseData = JSON.parse(responseText);
+  } catch {
+    responseData = { raw: responseText };
   }
-  return response.json();
+
+  if (!response.ok) {
+    const errorMsg = responseData?.message || responseText.slice(0, 300);
+    throw new Error(`Brevo API HTTP ${response.status}: ${errorMsg}`);
+  }
+
+  console.log(`[EMAIL SERVICE] Brevo API accepted message ${responseData?.messageId} for ${toList.map((t) => t.email).join(', ')}`);
+  return responseData;
 };
 
 const sendSmtpMail = async (options) => {
@@ -167,7 +221,7 @@ const sendSmtpMail = async (options) => {
       const transporter = createSmtpTransporter(port);
       const mailOptions = {
         ...options,
-        from: options.from || `"Flowsynq" <${config.from}>`,
+        from: options.from || `"FlowSynq" <${config.from}>`,
       };
       const result = await transporter.sendMail(mailOptions);
       return result;
@@ -189,8 +243,11 @@ const sendMail = async (options) => {
       console.log(`[EMAIL SERVICE] Sent email to ${options.to} via Resend API.`);
       return result;
     } catch (error) {
-      console.error('[EMAIL SERVICE] Resend API failed, trying fallback transports:', error.message);
+      console.error('[EMAIL SERVICE] Resend API failed:', error.message);
       lastError = error;
+      if (process.env.NODE_ENV === 'production' && !process.env.EMAIL_DEV_FALLBACK) {
+        throw error;
+      }
     }
   }
 
@@ -198,11 +255,14 @@ const sendMail = async (options) => {
   if (useBrevoApi()) {
     try {
       const result = await sendBrevoApiMail(options);
-      console.log(`[EMAIL SERVICE] Sent email to ${options.to} via Brevo API.`);
+      console.log(`[EMAIL SERVICE] Sent email to ${options.to} via Brevo API. MessageId:`, result?.messageId);
       return result;
     } catch (error) {
-      console.error('[EMAIL SERVICE] Brevo API failed, trying fallback transports:', error.message);
+      console.error('[EMAIL SERVICE] Brevo API failed:', error.message);
       lastError = error;
+      if (process.env.NODE_ENV === 'production' && !process.env.EMAIL_DEV_FALLBACK) {
+        throw error;
+      }
     }
   }
 
@@ -217,18 +277,16 @@ const sendMail = async (options) => {
       console.error(`[EMAIL SERVICE] SMTP send failed (${config.provider}):`, error.message);
       lastError = error;
     }
-  } else {
+  } else if (!lastError) {
     lastError = new Error('No valid email provider (Resend, Brevo API, or complete SMTP) is configured.');
   }
 
   // 4. Graceful Fallback Mode:
-  // In development, or on Render Free Tier where SMTP ports (25, 465, 587) are blocked,
-  // do NOT crash the calling controller or prevent the user from registering / logging in.
-  // Log the complete email (with OTP or action link) clearly to stdout and return a fallback object.
+  // Used in development or when explicitly enabled, or on Render when NO API key was set.
   const allowFallback =
     process.env.NODE_ENV !== 'production' ||
-    isRenderEnvironment() ||
-    process.env.EMAIL_DEV_FALLBACK === 'true';
+    process.env.EMAIL_DEV_FALLBACK === 'true' ||
+    (isRenderEnvironment() && !useBrevoApi() && !useResend());
 
   if (allowFallback) {
     logEmailFallback(options, lastError ? lastError.message : 'No outbound email provider configured');
@@ -236,6 +294,7 @@ const sendMail = async (options) => {
       messageId: `fallback-${Date.now()}@flowsynq.local`,
       fallback: true,
       deliveredToConsole: true,
+      warning: lastError?.message,
     };
   }
 
@@ -261,12 +320,50 @@ const verifyEmailConnection = async () => {
   // 2. Brevo REST API
   if (useBrevoApi()) {
     try {
-      const response = await fetch('https://api.brevo.com/v3/account', {
-        headers: { 'api-key': cleanEnv(process.env.BREVO_API_KEY) },
-        signal: AbortSignal.timeout(10000),
-      });
-      if (response.ok) {
-        return { ok: true, provider: 'brevo-api', mode: 'https-api' };
+      const apiKey = cleanEnv(process.env.BREVO_API_KEY);
+      const configuredSender = extractEmailAddress(process.env.EMAIL_FROM || process.env.EMAIL_USER);
+
+      const [accountRes, sendersRes] = await Promise.allSettled([
+        fetch('https://api.brevo.com/v3/account', {
+          headers: { 'api-key': apiKey },
+          signal: AbortSignal.timeout(10000),
+        }),
+        fetch('https://api.brevo.com/v3/senders', {
+          headers: { 'api-key': apiKey },
+          signal: AbortSignal.timeout(10000),
+        }),
+      ]);
+
+      if (accountRes.status === 'fulfilled' && accountRes.value.ok) {
+        const accountData = await accountRes.value.json().catch(() => ({}));
+        let verifiedSenders = [];
+        let senderIsVerified = false;
+
+        if (sendersRes.status === 'fulfilled' && sendersRes.value.ok) {
+          const sendersData = await sendersRes.value.json().catch(() => ({}));
+          verifiedSenders = (sendersData?.senders || [])
+            .filter((s) => s.active)
+            .map((s) => s.email);
+          senderIsVerified = verifiedSenders.some(
+            (e) => e.toLowerCase() === configuredSender.toLowerCase()
+          );
+        }
+
+        return {
+          ok: true,
+          provider: 'brevo-api',
+          mode: 'https-api',
+          accountEmail: accountData?.email,
+          configuredSender,
+          senderIsVerified,
+          verifiedSenders,
+          warning: !senderIsVerified
+            ? `EMAIL_FROM (${configuredSender}) is NOT verified in your Brevo senders list! Verified senders: [${verifiedSenders.join(', ')}]. In Brevo, go to Senders and add/verify ${configuredSender}.`
+            : undefined,
+          message: senderIsVerified
+            ? 'Brevo API key and sender verified successfully.'
+            : 'Brevo API key valid, but EMAIL_FROM may not be verified.',
+        };
       }
     } catch (e) {
       console.error('Brevo API verification failed:', e.message);
@@ -324,10 +421,10 @@ const sendOTPEmail = async (email, otp) => {
   try {
     const mailOptions = {
       to: email,
-      subject: 'Verify your Flowsynq Account',
+      subject: 'Verify your FlowSynq Account',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #ffffff;">
-          <h2 style="color: #0ea5e9; text-align: center;">Welcome to Flowsynq</h2>
+          <h2 style="color: #0ea5e9; text-align: center;">Welcome to FlowSynq</h2>
           <p style="font-size: 16px; color: #334155;">Hi there,</p>
           <p style="font-size: 16px; color: #334155;">Thank you for registering. Please use the following 6-digit OTP to verify your email address. This code is valid for <strong>2 minutes</strong>.</p>
           <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
@@ -335,7 +432,7 @@ const sendOTPEmail = async (email, otp) => {
           </div>
           <p style="font-size: 14px; color: #64748b;">If you did not request this, please ignore this email.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. All rights reserved.</p>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. All rights reserved.</p>
         </div>
       `,
     };
@@ -365,7 +462,7 @@ const sendDemoCredentialsEmail = async (email, username, password, expiresAt) =>
         </div>
         <p style="font-size: 14px; color: #64748b;">This account has pre-loaded port demonstration data.</p>
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-        <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. All rights reserved.</p>
+        <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. All rights reserved.</p>
       </div>
     `,
   });
@@ -390,7 +487,7 @@ const sendAdminApprovalEmail = async (adminEmail, requestDetails, approvalLink) 
             <a href="${approvalLink}&action=reject" style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Reject Request</a>
           </div>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. All rights reserved.</p>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. All rights reserved.</p>
         </div>
       `,
     };
@@ -422,7 +519,7 @@ const sendApprovalSuccessOTPEmail = async (email, role, otp) => {
           </div>
           <p style="font-size: 14px; color: #64748b;">If you did not request this, please ignore this email.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. All rights reserved.</p>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. All rights reserved.</p>
         </div>
       `,
     };
@@ -447,10 +544,10 @@ const sendApprovalRejectionEmail = async (email, role) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #ffffff;">
           <h2 style="color: #ef4444; text-align: center;">Registration Request Denied</h2>
           <p style="font-size: 16px; color: #334155;">Hi there,</p>
-          <p style="font-size: 16px; color: #334155;">We regret to inform you that your request to join Flowsynq as an <strong>${formattedRole}</strong> has been denied by the administration.</p>
+          <p style="font-size: 16px; color: #334155;">We regret to inform you that your request to join FlowSynq as an <strong>${formattedRole}</strong> has been denied by the administration.</p>
           <p style="font-size: 14px; color: #64748b; margin-top: 20px;">If you believe this is a mistake or have any questions, please contact our support team.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. All rights reserved.</p>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. All rights reserved.</p>
         </div>
       `,
     };
@@ -484,7 +581,7 @@ const sendDemandApprovalEmail = async ({ to, analystName, region, date, batchId 
           </div>
           <p style="font-size: 14px; color: #64748b;">The operational numbers and commodity entries are now locked into the system for planning and analytics.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. Automated operations notification.</p>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. Automated operations notification.</p>
         </div>
       `,
     };
@@ -517,7 +614,7 @@ const sendDemandRejectionEmail = async ({ to, analystName, region, date, batchId
           </div>
           <p style="font-size: 14px; color: #64748b;">Please review the notes, make the necessary corrections, and resubmit.</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 Flowsynq. Automated operations notification.</p>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2026 FlowSynq. Automated operations notification.</p>
         </div>
       `,
     };
@@ -541,7 +638,7 @@ const sendEmergencyBroadcastEmail = async (users, alertData) => {
     const fromAddress = cleanEnv(process.env.EMAIL_FROM || process.env.EMAIL_USER) || 'emergency@flowsynq.org';
 
     const mailOptions = {
-      from: `"Flowsynq Emergency System" <${fromAddress}>`,
+      from: `"FlowSynq Emergency System" <${fromAddress}>`,
       to: fromAddress,
       bcc: bccList,
       subject: `[EMERGENCY ALERT] ${alertData.severity.toUpperCase()} - ${alertData.title}`,
@@ -558,7 +655,7 @@ const sendEmergencyBroadcastEmail = async (users, alertData) => {
           <p style="font-size: 14px; color: #991b1b;"><strong>Triggered By:</strong> ${alertData.triggeredBy} (${alertData.triggeredByRole})</p>
           <p style="font-size: 14px; color: #991b1b; font-weight: bold;">Please follow port emergency procedures immediately.</p>
           <hr style="border: 0; border-top: 1px solid #fca5a5; margin: 20px 0;">
-          <p style="font-size: 12px; color: #991b1b; text-align: center;">&copy; 2026 Flowsynq. This is an automated emergency broadcast.</p>
+          <p style="font-size: 12px; color: #991b1b; text-align: center;">&copy; 2026 FlowSynq. This is an automated emergency broadcast.</p>
         </div>
       `,
     };

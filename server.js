@@ -37,7 +37,7 @@ const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const { resolveUserPort } = require('./utils/resolveUserPort');
 const { startShipmentRiskJob } = require('./jobs/shipmentRiskJob');
-const { sendEmergencyBroadcastEmail, verifyEmailConnection, getEmailProvider } = require('./utils/emailService');
+const { sendEmergencyBroadcastEmail, verifyEmailConnection, getEmailProvider, sendMail } = require('./utils/emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -156,6 +156,45 @@ app.get('/health/email', async (req, res) => {
       command: error.command || undefined,
       responseCode: error.responseCode || undefined,
       detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
+    });
+  }
+});
+
+app.get('/health/email/test', async (req, res) => {
+  const to = req.query.to || req.query.email || process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+  if (!to) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Please provide a recipient email in query param, e.g. ?to=your-email@gmail.com',
+    });
+  }
+  try {
+    const result = await sendMail({
+      to,
+      subject: 'FlowSynq Test Email Verification',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #0ea5e9; border-radius: 8px;">
+          <h2 style="color: #0ea5e9;">FlowSynq Email Verification</h2>
+          <p>This is a live test email sent from your FlowSynq server on Render.</p>
+          <p><strong>Provider:</strong> ${getEmailProvider()}</p>
+          <p><strong>Recipient:</strong> ${to}</p>
+          <p><strong>Server Time:</strong> ${new Date().toISOString()}</p>
+        </div>
+      `,
+    });
+    return res.json({
+      status: 'ok',
+      message: `Test email dispatched to ${to}`,
+      provider: getEmailProvider(),
+      result,
+    });
+  } catch (error) {
+    console.error('Test email failed:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to send test email',
+      provider: getEmailProvider(),
+      error: error.message,
     });
   }
 });
