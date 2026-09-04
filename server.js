@@ -37,7 +37,7 @@ const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const { resolveUserPort } = require('./utils/resolveUserPort');
 const { startShipmentRiskJob } = require('./jobs/shipmentRiskJob');
-const { sendEmergencyBroadcastEmail } = require('./utils/emailService');
+const { sendEmergencyBroadcastEmail, verifyEmailConnection } = require('./utils/emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -126,6 +126,21 @@ app.get('/health', (req, res) => {
       && process.env.EMAIL_PASS
       && (process.env.EMAIL_FROM || process.env.EMAIL_USER)
     ),
+  });
+
+  app.get('/health/email', async (req, res) => {
+    try {
+      await verifyEmailConnection();
+      return res.json({ status: 'ok', emailConfigured: true, message: 'SMTP connection verified.' });
+    } catch (error) {
+      console.error('SMTP health check failed:', error.message);
+      return res.status(503).json({
+        status: 'error',
+        emailConfigured: true,
+        message: 'SMTP connection failed.',
+        detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
+      });
+    }
   });
 });
 

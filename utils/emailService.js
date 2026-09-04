@@ -4,7 +4,9 @@ const getMailConfig = () => {
   const host = String(process.env.EMAIL_HOST || '').trim();
   const port = Number.parseInt(String(process.env.EMAIL_PORT || '587').trim(), 10);
   const user = String(process.env.EMAIL_USER || '').trim();
-  const pass = String(process.env.EMAIL_PASS || '').trim();
+  // Gmail displays app passwords in groups; SMTP authentication requires the
+  // same value without the visual spaces.
+  const pass = String(process.env.EMAIL_PASS || '').replace(/\s+/g, '');
   const from = String(process.env.EMAIL_FROM || user).trim();
   if (!host || !Number.isInteger(port) || !user || !pass || !from) {
     throw new Error('SMTP configuration is incomplete. Set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, and EMAIL_FROM.');
@@ -23,6 +25,12 @@ const sendMail = async (options) => {
   const config = getMailConfig();
   const transporter = createTransporter();
   return transporter.sendMail({ ...options, from: options.from || `"Flowsynq" <${config.from}>` });
+};
+
+const verifyEmailConnection = async () => {
+  const transporter = createTransporter();
+  await transporter.verify();
+  return true;
 };
 
 const sendOTPEmail = async (email, otp) => {
@@ -191,6 +199,7 @@ const sendEmergencyBroadcastEmail = async (users, alertData) => {
 };
 
 module.exports = {
+  verifyEmailConnection,
   sendOTPEmail,
   sendDemoCredentialsEmail,
   sendAdminApprovalEmail,
