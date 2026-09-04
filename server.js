@@ -121,6 +121,7 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     emailConfigured: Boolean(
       process.env.RESEND_API_KEY
+      || process.env.BREVO_API_KEY
       || (
         process.env.EMAIL_HOST
         && process.env.EMAIL_PORT
@@ -135,13 +136,13 @@ app.get('/health', (req, res) => {
 app.get('/health/email', async (req, res) => {
   try {
     const verified = await verifyEmailConnection();
-    return res.json({ status: 'ok', emailConfigured: true, provider: verified.provider || getEmailProvider(), port: verified.port, message: process.env.RESEND_API_KEY ? 'HTTPS email provider verified.' : 'SMTP connection verified.' });
+    return res.json({ status: 'ok', emailConfigured: true, provider: verified.provider || getEmailProvider(), port: verified.port, message: 'Email provider verified.' });
   } catch (error) {
     console.error('SMTP health check failed:', error.message);
     return res.status(503).json({
       status: 'error',
       emailConfigured: true,
-      provider: process.env.RESEND_API_KEY ? 'resend' : (process.env.EMAIL_PROVIDER || 'smtp'),
+      provider: process.env.RESEND_API_KEY ? 'resend' : process.env.BREVO_API_KEY ? 'brevo-api' : (process.env.EMAIL_PROVIDER || 'smtp'),
       message: 'Email provider connection failed.',
       errorCode: error.code || undefined,
       command: error.command || undefined,

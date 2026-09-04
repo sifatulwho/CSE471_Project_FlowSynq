@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 
 const useResend = () => Boolean(String(process.env.RESEND_API_KEY || '').trim());
+const useBrevoApi = () => Boolean(String(process.env.BREVO_API_KEY || '').trim());
 
 const cleanEnv = (value) => String(value || '').trim().replace(/^["']|["']$/g, '');
 
@@ -89,6 +90,30 @@ const sendMail = async (options) => {
     }
     return response.json();
   }
+  if (useBrevoApi()) {
+    const from = cleanEnv(process.env.EMAIL_FROM || process.env.EMAIL_USER);
+    if (!from) throw new Error('EMAIL_FROM is required when using BREVO_API_KEY.');
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': cleanEnv(process.env.BREVO_API_KEY),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { email: from },
+        to: (Array.isArray(options.to) ? options.to : [options.to]).map((email) => ({ email })),
+        bcc: options.bcc ? options.bcc.map((email) => ({ email })) : undefined,
+        subject: options.subject,
+        htmlContent: options.html,
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`Brevo API returned HTTP ${response.status}: ${detail.slice(0, 300)}`);
+    }
+    return response.json();
+  }
   return sendSmtpMail(options);
 };
 
@@ -100,6 +125,14 @@ const verifyEmailConnection = async () => {
     });
     if (!response.ok) throw new Error(`Resend API returned HTTP ${response.status}.`);
     return true;
+  }
+  if (useBrevoApi()) {
+    const response = await fetch('https://api.brevo.com/v3/account', {
+      headers: { 'api-key': cleanEnv(process.env.BREVO_API_KEY) },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`Brevo API returned HTTP ${response.status}.`);
+    return { provider: 'brevo-api' };
   }
   let lastError;
   for (const port of getTransportPorts()) {
@@ -125,7 +158,7 @@ const verifyEmailConnection = async () => {
   throw lastError;
 };
 
-const getEmailProvider = () => (useResend() ? 'resend' : getMailConfig().provider);
+const getEmailProvider = () => (useResend() ? 'resend' : useBrevoApi() ? 'brevo-api' : getMailConfig().provider);
 
 const sendOTPEmail = async (email, otp) => {
   try {

@@ -103,6 +103,11 @@ your Brevo login email as `EMAIL_USER`, and the Brevo SMTP key as
 `EMAIL_PASS`. `EMAIL_FROM` must be a verified Brevo sender. This is used by
 registration OTP, approval emails, demo credentials, and operational
 notifications.
+If Brevo SMTP continues returning `535 AUTH LOGIN`, create a Brevo API key
+under **SMTP & API -> API Keys**, set `BREVO_API_KEY` in Render, and redeploy.
+When present, the application uses Brevo's HTTPS transactional API instead of
+SMTP, avoiding SMTP authentication and port restrictions. `BREVO_API_KEY` is
+different from the SMTP key.
 If Render cannot connect to Gmail SMTP, use Resend instead: create and verify a
 sender domain at `resend.com`, set `RESEND_API_KEY` and `EMAIL_FROM` in the
 backend, and leave the SMTP variables present or remove them. When
