@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Demand = require('../models/Demand');
 const DailyPortOps = require('../models/DailyPortOps');
 const User = require('../models/User');
-const { sendDemandApprovalEmail } = require('../utils/emailService');
+const { sendDemandApprovalEmail, sendDemandRejectionEmail } = require('../utils/emailService');
 const { generateYearlyPortDemo } = require('../utils/generateYearlyPortDemo');
 
 async function mirrorDailyOpsStatusForBatch(batchId, { status, reviewedBy, rejectionReason }) {
@@ -453,12 +453,17 @@ exports.approveDemandBatch = async (req, res) => {
 
     const submitter = first.submittedBy ? await User.findById(first.submittedBy).select('email fullName') : null;
     if (submitter?.email) {
-      await sendDemandApprovalEmail({
-        to: submitter.email,
-        analystName: submitter.fullName,
-        region: first.region,
-        date: first.date,
-      });
+      try {
+        await sendDemandApprovalEmail({
+          to: submitter.email,
+          analystName: submitter.fullName,
+          region: first.region,
+          date: first.date,
+          batchId,
+        });
+      } catch (emailError) {
+        console.error('Failed to send demand batch approval email:', emailError);
+      }
     }
 
     return res.json({ message: 'Batch approved.', modified: result.modifiedCount || 0 });
@@ -500,6 +505,22 @@ exports.rejectDemandBatch = async (req, res) => {
       reviewedBy: req.user.id,
       rejectionReason: reasonTrim,
     });
+
+    const submitter = first.submittedBy ? await User.findById(first.submittedBy).select('email fullName') : null;
+    if (submitter?.email) {
+      try {
+        await sendDemandRejectionEmail({
+          to: submitter.email,
+          analystName: submitter.fullName,
+          region: first.region,
+          date: first.date,
+          batchId,
+          reason: reasonTrim,
+        });
+      } catch (emailError) {
+        console.error('Failed to send demand batch rejection email:', emailError);
+      }
+    }
 
     return res.json({ message: 'Batch rejected.', modified: result.modifiedCount || 0 });
   } catch (error) {
@@ -616,12 +637,17 @@ exports.approveDemand = async (req, res) => {
 
     const submitter = await User.findById(doc.submittedBy).select('email fullName');
     if (submitter?.email) {
-      await sendDemandApprovalEmail({
-        to: submitter.email,
-        analystName: submitter.fullName,
-        region: doc.region,
-        date: doc.date,
-      });
+      try {
+        await sendDemandApprovalEmail({
+          to: submitter.email,
+          analystName: submitter.fullName,
+          region: doc.region,
+          date: doc.date,
+          batchId: doc.batchId,
+        });
+      } catch (emailError) {
+        console.error('Failed to send demand approval email:', emailError);
+      }
     }
 
     const populated = await Demand.findById(doc._id)
@@ -674,6 +700,22 @@ exports.rejectDemand = async (req, res) => {
         reviewedBy: req.user.id,
         rejectionReason: reasonTrim,
       });
+    }
+
+    const submitter = await User.findById(doc.submittedBy).select('email fullName');
+    if (submitter?.email) {
+      try {
+        await sendDemandRejectionEmail({
+          to: submitter.email,
+          analystName: submitter.fullName,
+          region: doc.region,
+          date: doc.date,
+          batchId: doc.batchId,
+          reason: reasonTrim,
+        });
+      } catch (emailError) {
+        console.error('Failed to send demand rejection email:', emailError);
+      }
     }
 
     const populated = await Demand.findById(doc._id)

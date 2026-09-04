@@ -43,7 +43,7 @@ services:
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_PROVIDER
-        value: brevo
+        sync: false
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS

@@ -136,7 +136,7 @@ exports.initiateRegistration = async (req, res) => {
       const approvalLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/approve-request?token=${token}`;
 
       try {
-        await sendAdminApprovalEmail(process.env.EMAIL_USER, {
+        await sendAdminApprovalEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, {
           fullName: normalizedFullName,
           email: normalizedEmail,
           role: normalizedRole
