@@ -48,8 +48,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
-  'https://flowsynq-frontend.onrender.com',
-  'https://flowsynq-backend.onrender.com'
+  'https://flowsynq-frontend-04dg.onrender.com',
+  'https://flowsynq-backend-0dvh.onrender.com'
 ].filter(Boolean);
 
 const isAllowedOrigin = (origin) => {

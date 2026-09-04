@@ -18,7 +18,7 @@ services:
       - key: SESSION_SECRET
         sync: false
       - key: CLIENT_URL
-        value: https://flowsynq-frontend.onrender.com
+        value: https://flowsynq-frontend-04dg.onrender.com
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -79,7 +79,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://flowsynq-backend.onrender.com
+        value: https://flowsynq-backend-0dvh.onrender.com
       - key: NODE_VERSION
         value: "22.12.0"
       - key: VITE_GOOGLE_CLIENT_ID

@@ -51,7 +51,7 @@ exports.createDemoRequest = async (req, res) => {
         unit_amount: 10000,
       }, quantity: 1 }],
       metadata: { demoRequestId: String(request._id) },
-      success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/demo-request?paid=1`,
+      success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/demo-request?paid=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/demo-request?cancelled=1`,
     });
     request.stripeSessionId = session.id;
@@ -111,6 +111,35 @@ exports.syncDemoPayment = async (req, res) => {
     return res.json({ message: refreshed.status === 'paid' ? 'Payment verified.' : 'Payment has not been completed.', request: safeRequest(refreshed) });
   } catch (error) {
     console.error('Stripe payment synchronization error:', error);
+    return res.status(502).json({ message: 'Unable to verify payment with Stripe.' });
+  }
+};
+
+// Stripe webhooks are authoritative, but the success page also reconciles the
+// payment so admin approval is not blocked when webhook delivery is delayed.
+exports.confirmDemoPayment = async (req, res) => {
+  if (!stripe) return res.status(503).json({ message: 'Stripe payments are not configured.' });
+  const sessionId = String(req.body.sessionId || '').trim();
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+    return res.status(400).json({ message: 'A valid Stripe Checkout session is required.' });
+  }
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const request = await DemoRequest.findOne({
+      $or: [
+        { stripeSessionId: session.id },
+        { _id: session.metadata?.demoRequestId },
+      ],
+    });
+    if (!request) return res.status(404).json({ message: 'Demo request not found.' });
+    if (session.payment_status !== 'paid' || session.amount_total !== request.amountCents || session.currency !== request.currency) {
+      return res.status(400).json({ message: 'Payment has not been completed or could not be verified.' });
+    }
+    await markSessionPaid(session);
+    const refreshed = await DemoRequest.findById(request._id);
+    return res.json({ message: 'Payment verified. An administrator can now approve the demo.', request: safeRequest(refreshed) });
+  } catch (error) {
+    console.error('Demo payment confirmation error:', error);
     return res.status(502).json({ message: 'Unable to verify payment with Stripe.' });
   }
 };

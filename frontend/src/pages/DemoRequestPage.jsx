@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE } from '../config';
@@ -8,6 +8,20 @@ const DemoRequestPage = () => {
   const [form, setForm] = useState({ fullName: '', email: '', company: '', portName: '' });
   const [message, setMessage] = useState(params.get('paid') ? 'Payment received. An administrator will review your request.' : '');
   const [loading, setLoading] = useState(false);
+  const sessionId = params.get('session_id');
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    axios.post(`${API_BASE}/demo-requests/confirm-payment`, { sessionId })
+      .then((response) => {
+        if (!cancelled) setMessage(response.data.message);
+      })
+      .catch((error) => {
+        if (!cancelled) setMessage(error.response?.data?.message || 'Payment confirmation is still pending. An administrator can verify it shortly.');
+      });
+    return () => { cancelled = true; };
+  }, [sessionId]);
   const submit = async (event) => {
     event.preventDefault();
     setLoading(true);

@@ -4,9 +4,11 @@ const { authenticate } = require('../middleware/authMiddleware');
 const { requireRoles } = require('../middleware/roleMiddleware');
 const {
   createDemoRequest, listDemoRequests, approveDemoRequest, rejectDemoRequest, syncDemoPayment,
+  confirmDemoPayment,
 } = require('../controllers/demoRequestController');
 
 router.post('/', createDemoRequest);
+router.post('/confirm-payment', confirmDemoPayment);
 router.use(authenticate, requireRoles('admin'));
 router.get('/', listDemoRequests);
 router.post('/:id/sync-payment', syncDemoPayment);
