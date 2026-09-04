@@ -118,7 +118,14 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    emailConfigured: Boolean(
+      process.env.EMAIL_HOST
+      && process.env.EMAIL_PORT
+      && process.env.EMAIL_USER
+      && process.env.EMAIL_PASS
+      && (process.env.EMAIL_FROM || process.env.EMAIL_USER)
+    ),
   });
 });
 

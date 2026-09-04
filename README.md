@@ -116,7 +116,9 @@ use the Gmail account password. Render environment variables are injected at
 runtime/build time, so redeploy after changing them.
 
 After deployment, verify `https://<backend>.onrender.com/health` returns
-`{"status":"ok"}`. Test the frontend from its Render URL, not localhost.
+`{"status":"ok"}` and `emailConfigured: true`. Test the frontend from its
+Render URL, not localhost. If `emailConfigured` is false, save the missing
+SMTP variables in the Render backend service and redeploy.
 When changing any `VITE_*` value, trigger a new frontend deploy because Vite
 embeds those values at build time.
 

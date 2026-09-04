@@ -139,13 +139,19 @@ exports.approveDemoRequest = async (req, res) => {
     demoRequestId: request._id,
     demoExpiresAt: expiresAt,
   });
+  try {
+    await sendDemoCredentialsEmail(user.email, username, password, expiresAt);
+  } catch (error) {
+    await User.deleteOne({ _id: user._id });
+    console.error('Demo credentials email error:', error);
+    return res.status(502).json({ message: 'Demo account was not activated because credentials email could not be sent. Check SMTP configuration and try again.' });
+  }
   request.status = 'approved';
   request.demoUserId = user._id;
   request.approvedAt = new Date();
   request.approvedBy = req.user.id;
   request.expiresAt = expiresAt;
   await request.save();
-  await sendDemoCredentialsEmail(user.email, username, password, expiresAt);
   return res.json({ message: 'Demo approved and credentials emailed.', request: safeRequest(request) });
 };
 
