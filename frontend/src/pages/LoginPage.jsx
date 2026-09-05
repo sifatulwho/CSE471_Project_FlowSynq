@@ -1,7 +1,7 @@
 import VideoBackground from '../components/VideoBackground';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { API_BASE } from '../config';
 
@@ -12,10 +12,34 @@ const inputCls =
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ identifier: '', password: '', remember: false });
   const [message, setMessage] = useState('');
+  const [demoSuccess, setDemoSuccess] = useState(false);
+  const [demoMessage, setDemoMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const isDemo = searchParams.get('demo') === 'success';
+    const sessionId = searchParams.get('session_id');
+    if (isDemo || sessionId) {
+      setDemoSuccess(true);
+      setDemoMessage('Demo subscription successful! Your temporary credentials have been sent to your email. Please check your inbox and sign in below.');
+
+      if (sessionId) {
+        axios.post(`${API_BASE}/demo-requests/confirm-payment`, { sessionId })
+          .then((res) => {
+            if (res.data?.message) {
+              setDemoMessage(res.data.message);
+            }
+          })
+          .catch((err) => {
+            console.error('Demo payment confirmation error:', err);
+          });
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const saved = localStorage.getItem('flowsynqRemember');
@@ -163,6 +187,18 @@ const LoginPage = () => {
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
+
+          {demoSuccess && (
+            <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3.5 text-sm text-emerald-200 shadow-lg shadow-emerald-950/20">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs">✓</span>
+                <div>
+                  <p className="font-semibold text-emerald-300">Demo Subscription Confirmed</p>
+                  <p className="mt-1 text-xs text-emerald-100/90 leading-relaxed">{demoMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {message && (
             <p className="auth-alert mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-200">

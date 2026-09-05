@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api';
 
 const badgeCls = {
@@ -11,9 +11,22 @@ const badgeCls = {
 
 const ShipmentRequestsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('subscription') === 'success') {
+      setSubscriptionSuccess(true);
+      const sessionId = searchParams.get('session_id') || '';
+      api.post('/billing/sync', null, { params: { session_id: sessionId } })
+        .catch((err) => {
+          console.error('Subscription sync error:', err);
+        });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     api.get('/shipment-requests', { params: { limit: 25, page: 1 } })
@@ -24,6 +37,17 @@ const ShipmentRequestsPage = () => {
 
   return (
     <div className="space-y-4">
+      {subscriptionSuccess && (
+        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-200 shadow-lg shadow-emerald-950/20">
+          <div className="flex items-center gap-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-bold">✓</span>
+            <div>
+              <p className="font-semibold text-emerald-300">Subscription Active</p>
+              <p className="text-xs text-emerald-100/90 mt-0.5">Your organization monthly subscription has been successfully activated. You can now create and manage shipment requests.</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white">My Shipment Requests</h2>
         <Link to="/organization/shipment-requests/create" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">New Request</Link>

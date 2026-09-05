@@ -22,6 +22,56 @@ const safeRequest = (request) => ({
   expiresAt: request.expiresAt,
 });
 
+const getClientUrl = (req) => {
+  const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+  return origin || process.env.CLIENT_URL || 'http://localhost:5173';
+};
+
+const activateDemoRequest = async (request, approverId = null) => {
+  if (request.status === 'approved' && request.demoUserId) {
+    return request;
+  }
+  const expiresAt = new Date(Date.now() + DEMO_DAYS * 24 * 60 * 60 * 1000);
+  const username = `demo_${crypto.randomBytes(6).toString('hex')}`;
+  const password = crypto.randomBytes(18).toString('base64url');
+
+  let user = await User.findOne({ email: request.email });
+  if (!user) {
+    user = await User.create({
+      fullName: request.fullName,
+      username,
+      email: request.email,
+      password,
+      country: '',
+      portName: request.portName || DEMO_PORT,
+      role: 'organization',
+      isDemo: true,
+      demoRequestId: request._id,
+      demoExpiresAt: expiresAt,
+    });
+  } else {
+    user.isDemo = true;
+    user.demoRequestId = request._id;
+    user.demoExpiresAt = expiresAt;
+    user.password = password;
+    await user.save();
+  }
+
+  try {
+    await sendDemoCredentialsEmail(user.email, user.username || username, password, expiresAt);
+  } catch (error) {
+    console.error('Demo credentials email error:', error);
+  }
+
+  request.status = 'approved';
+  request.demoUserId = user._id;
+  request.approvedAt = new Date();
+  if (approverId) request.approvedBy = approverId;
+  request.expiresAt = expiresAt;
+  await request.save();
+  return request;
+};
+
 exports.createDemoRequest = async (req, res) => {
   if (!stripe) {
     return res.status(503).json({
@@ -42,6 +92,7 @@ exports.createDemoRequest = async (req, res) => {
   if (existing) return res.status(409).json({ message: 'A demo request already exists for this email.' });
   const request = await DemoRequest.create({ fullName, email, company, portName });
   try {
+    const clientUrl = getClientUrl(req);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: email,
@@ -51,8 +102,8 @@ exports.createDemoRequest = async (req, res) => {
         unit_amount: 10000,
       }, quantity: 1 }],
       metadata: { demoRequestId: String(request._id) },
-      success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/demo-request?paid=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/demo-request?cancelled=1`,
+      success_url: `${clientUrl}/login?demo=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${clientUrl}/demo-request?cancelled=1`,
     });
     request.stripeSessionId = session.id;
     await request.save();
@@ -87,7 +138,7 @@ const markSessionPaid = async (session) => {
       { _id: session.metadata?.demoRequestId },
     ],
   });
-  if (!request || request.status !== 'pending_payment') return false;
+  if (!request || (request.status !== 'pending_payment' && request.status !== 'paid')) return false;
   if (session.payment_status !== 'paid' || session.amount_total !== request.amountCents || session.currency !== request.currency) {
     console.error('Rejected Stripe demo payment verification:', session.id);
     return false;
@@ -95,6 +146,9 @@ const markSessionPaid = async (session) => {
   request.status = 'paid';
   request.stripePaymentIntentId = String(session.payment_intent || '');
   await request.save();
+
+  // Automatically activate demo account and email temporary credentials
+  await activateDemoRequest(request);
   return true;
 };
 
@@ -102,13 +156,13 @@ exports.syncDemoPayment = async (req, res) => {
   if (!stripe) return res.status(503).json({ message: 'Stripe payments are not configured.' });
   const request = await DemoRequest.findById(req.params.id);
   if (!request) return res.status(404).json({ message: 'Demo request not found.' });
-  if (request.status !== 'pending_payment') return res.json({ message: 'Payment status is already synchronized.', request: safeRequest(request) });
+  if (request.status === 'approved') return res.json({ message: 'Demo is already active and approved.', request: safeRequest(request) });
   if (!request.stripeSessionId) return res.status(400).json({ message: 'No Stripe Checkout session is linked to this request.' });
   try {
     const session = await stripe.checkout.sessions.retrieve(request.stripeSessionId);
     await markSessionPaid(session);
     const refreshed = await DemoRequest.findById(request._id);
-    return res.json({ message: refreshed.status === 'paid' ? 'Payment verified.' : 'Payment has not been completed.', request: safeRequest(refreshed) });
+    return res.json({ message: refreshed.status === 'approved' || refreshed.status === 'paid' ? 'Payment verified and demo activated.' : 'Payment has not been completed.', request: safeRequest(refreshed) });
   } catch (error) {
     console.error('Stripe payment synchronization error:', error);
     return res.status(502).json({ message: 'Unable to verify payment with Stripe.' });
@@ -116,7 +170,7 @@ exports.syncDemoPayment = async (req, res) => {
 };
 
 // Stripe webhooks are authoritative, but the success page also reconciles the
-// payment so admin approval is not blocked when webhook delivery is delayed.
+// payment so demo credentials are dispatched immediately even if webhook delivery is delayed.
 exports.confirmDemoPayment = async (req, res) => {
   if (!stripe) return res.status(503).json({ message: 'Stripe payments are not configured.' });
   const sessionId = String(req.body.sessionId || '').trim();
@@ -137,7 +191,7 @@ exports.confirmDemoPayment = async (req, res) => {
     }
     await markSessionPaid(session);
     const refreshed = await DemoRequest.findById(request._id);
-    return res.json({ message: 'Payment verified. An administrator can now approve the demo.', request: safeRequest(refreshed) });
+    return res.json({ message: 'Demo payment verified and login credentials sent to your email.', request: safeRequest(refreshed) });
   } catch (error) {
     console.error('Demo payment confirmation error:', error);
     return res.status(502).json({ message: 'Unable to verify payment with Stripe.' });
@@ -152,36 +206,18 @@ exports.listDemoRequests = async (req, res) => {
 exports.approveDemoRequest = async (req, res) => {
   const request = await DemoRequest.findById(req.params.id);
   if (!request) return res.status(404).json({ message: 'Demo request not found.' });
-  if (request.status !== 'paid') return res.status(400).json({ message: 'Only paid requests can be approved.' });
-  const expiresAt = new Date(Date.now() + DEMO_DAYS * 24 * 60 * 60 * 1000);
-  const username = `demo_${crypto.randomBytes(6).toString('hex')}`;
-  const password = crypto.randomBytes(18).toString('base64url');
-  const user = await User.create({
-    fullName: request.fullName,
-    username,
-    email: request.email,
-    password,
-    country: '',
-    portName: request.portName,
-    role: 'organization',
-    isDemo: true,
-    demoRequestId: request._id,
-    demoExpiresAt: expiresAt,
-  });
-  try {
-    await sendDemoCredentialsEmail(user.email, username, password, expiresAt);
-  } catch (error) {
-    await User.deleteOne({ _id: user._id });
-    console.error('Demo credentials email error:', error);
-    return res.status(502).json({ message: 'Demo account was not activated because credentials email could not be sent. Check SMTP configuration and try again.' });
+  if (request.status === 'approved' && request.demoUserId) {
+    return res.json({ message: 'Demo is already approved and active.', request: safeRequest(request) });
   }
-  request.status = 'approved';
-  request.demoUserId = user._id;
-  request.approvedAt = new Date();
-  request.approvedBy = req.user.id;
-  request.expiresAt = expiresAt;
-  await request.save();
-  return res.json({ message: 'Demo approved and credentials emailed.', request: safeRequest(request) });
+  if (request.status !== 'paid') return res.status(400).json({ message: 'Only paid requests can be approved.' });
+  try {
+    await activateDemoRequest(request, req.user.id);
+    const refreshed = await DemoRequest.findById(request._id);
+    return res.json({ message: 'Demo approved and credentials emailed.', request: safeRequest(refreshed) });
+  } catch (error) {
+    console.error('Demo approval activation error:', error);
+    return res.status(502).json({ message: 'Failed to activate demo account.' });
+  }
 };
 
 exports.rejectDemoRequest = async (req, res) => {

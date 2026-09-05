@@ -59,11 +59,15 @@ function App() {
         <Routes>
           {/* Auth */}
           <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/verify-otp" element={<VerifyOTPPage />} />
           <Route path="/set-password" element={<SetPasswordPage />} />
           <Route path="/admin/approve-request" element={<AdminApprovePage />} />
           <Route path="/demo-request" element={<DemoRequestPage />} />
+          <Route path="/shipment-requests" element={<Navigate to="/dashboard/shipment-requests" replace />} />
+          <Route path="/shipment-request" element={<Navigate to="/dashboard/shipment-requests" replace />} />
+          <Route path="/billing" element={<Navigate to="/dashboard/billing" replace />} />
 
           {/* Main Dashboard (Admin / Analyst / all roles) */}
           <Route path="/dashboard" element={<DashboardLayout />}>

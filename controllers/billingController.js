@@ -12,6 +12,11 @@ const PRICE_CENTS = 10000;
 const CURRENCY = 'usd';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+const getClientUrl = (req) => {
+  const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
+  return origin || CLIENT_URL;
+};
+
 const toDate = (seconds) => (seconds ? new Date(seconds * 1000) : null);
 const getPeriodTimestamp = (subscription, item, field) => subscription[field] || item?.[field];
 
@@ -62,6 +67,7 @@ exports.createCheckoutSession = async (req, res) => {
   }
 
   try {
+    const clientUrl = getClientUrl(req);
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer_email: organization.email,
@@ -76,8 +82,8 @@ exports.createCheckoutSession = async (req, res) => {
       }],
       metadata: { organizationId: String(req.user.id) },
       subscription_data: { metadata: { organizationId: String(req.user.id) } },
-      success_url: `${CLIENT_URL}/dashboard/billing?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${CLIENT_URL}/dashboard/billing?subscription=cancelled`,
+      success_url: `${clientUrl}/dashboard/shipment-requests?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${clientUrl}/dashboard/billing?subscription=cancelled`,
     });
     return res.status(201).json({ checkoutUrl: session.url });
   } catch (error) {
@@ -93,9 +99,10 @@ exports.createPortalSession = async (req, res) => {
     return res.status(400).json({ message: 'No billing customer exists yet. Subscribe first.' });
   }
   try {
+    const clientUrl = getClientUrl(req);
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
-      return_url: `${CLIENT_URL}/dashboard/billing`,
+      return_url: `${clientUrl}/dashboard/billing`,
     });
     return res.json({ url: session.url });
   } catch (error) {
