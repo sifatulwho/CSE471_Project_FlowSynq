@@ -27,7 +27,10 @@ const DemoRequestPage = () => {
     setLoading(true);
     setMessage('');
     try {
-      const response = await axios.post(`${API_BASE}/demo-requests`, form);
+      const response = await axios.post(`${API_BASE}/demo-requests`, {
+        ...form,
+        clientUrl: window.location.origin,
+      });
       window.location.assign(response.data.checkoutUrl);
     } catch (error) {
       setMessage(error.response?.data?.message || 'Unable to start secure payment.');

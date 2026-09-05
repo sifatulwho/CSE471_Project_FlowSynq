@@ -35,7 +35,9 @@ const BillingPage = () => {
   const startCheckout = async () => {
     setError('');
     try {
-      const response = await api.post('/billing/checkout');
+      const response = await api.post('/billing/checkout', {
+        clientUrl: window.location.origin,
+      });
       window.location.assign(response.data.checkoutUrl);
     } catch (err) {
       setError(err?.response?.data?.message || 'Unable to start subscription checkout.');

@@ -23,8 +23,10 @@ const safeRequest = (request) => ({
 });
 
 const getClientUrl = (req) => {
+  const explicit = req.body?.clientUrl;
   const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
-  return origin || process.env.CLIENT_URL || 'http://localhost:5173';
+  const resolved = explicit || origin || process.env.CLIENT_URL || 'http://localhost:5173';
+  return String(resolved).replace(/\/$/, '');
 };
 
 const activateDemoRequest = async (request, approverId = null) => {

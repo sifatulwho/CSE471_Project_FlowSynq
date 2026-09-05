@@ -8,6 +8,8 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const http = require('http');             //new line for alert (3,6,11,12,13))
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -198,6 +200,26 @@ app.get('/health/email/test', async (req, res) => {
     });
   }
 });
+
+// Serve frontend static assets and handle client-side SPA routing fallback
+const frontendDist = path.join(__dirname, 'frontend', 'dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    return res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+} else if (process.env.CLIENT_URL) {
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    const cleanClientUrl = String(process.env.CLIENT_URL).replace(/\/$/, '');
+    return res.redirect(`${cleanClientUrl}${req.originalUrl}`);
+  });
+}
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)

@@ -13,8 +13,10 @@ const CURRENCY = 'usd';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 const getClientUrl = (req) => {
+  const explicit = req.body?.clientUrl;
   const origin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null);
-  return origin || CLIENT_URL;
+  const resolved = explicit || origin || CLIENT_URL;
+  return String(resolved).replace(/\/$/, '');
 };
 
 const toDate = (seconds) => (seconds ? new Date(seconds * 1000) : null);
