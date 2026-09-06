@@ -155,60 +155,6 @@ The application supports multiple access roles:
 - Organization recurring billing and subscription tracking
 - Restricted demo-user access for read-only workflows
 
-## Environment setup
-
-Create a root `.env` file before starting the app. Keep secrets in local environment variables and do not commit real credentials to version control.
-
-Example:
-
-```env
-PORT=5001
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/flowsynq
-JWT_SECRET=replace_with_a_long_random_string
-SESSION_SECRET=replace_with_a_long_random_string
-CLIENT_URL=http://localhost:5173
-ADMIN_EMAIL=admin@example.com
-
-# Email / SMTP
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@example.com
-EMAIL_PASS=your_email_password
-EMAIL_FROM=your_email@example.com
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5001/api/auth/google/callback
-
-# External APIs
-OPENWEATHER_API_KEY=your_openweather_key
-SEAROUTES_API_KEY=your_searoutes_key
-PYTHON_AI_URL=http://localhost:8000
-OPTIMIZATION_SERVICE_URL=http://localhost:8000
-ANALYTICS_SERVICE_URL=http://localhost:8000/analytics/recommendations
-
-# Stripe
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_demo_webhook_secret
-STRIPE_SUBSCRIPTION_WEBHOOK_SECRET=your_subscription_webhook_secret
-
-# Demo configuration
-DEMO_DURATION_DAYS=7
-DEMO_PORT_NAME=FlowSynq Demo Port
-
-# OS / geography data
-NOMINATIM_USER_AGENT=your_app_name
-```
-
-The frontend also uses a Vite environment file:
-
-```env
-VITE_API_URL=http://localhost:5001
-```
-
-See `frontend/.env.example` for the default local frontend sample.
 
 ## Local development
 
@@ -287,21 +233,3 @@ It provisions:
 
 For production deployment, configure environment variables securely in Render or your hosting platform and do not check real credentials into the repository.
 
-## Security and confidentiality notes
-
-- Do not commit `.env` files or production secrets.
-- Keep API keys, SMTP credentials, Stripe keys, and OAuth client secrets in the deployment platform secret store.
-- Use placeholder values in documentation and examples.
-- Validate that health checks and public docs do not expose internal credentials, private links, or sensitive customer data.
-
-## Notes for contributors
-
-- Backend logic lives under `controllers/`, `routes/`, and `services/`.
-- Frontend pages and dashboard flow live in `frontend/src/pages/`.
-- Data models are defined in `models/` and are central to schema changes.
-- Use the Python service for forecasting-heavy work, while the Node backend handles API, auth, and operational workflows.
-- If you add new environment variables, update both deployment configuration and this README.
-
-## License
-
-This project currently uses the ISC license as declared in the root `package.json` file.
